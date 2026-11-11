@@ -1,0 +1,81 @@
+@import '@fontsource-variable/archivo/wdth.css';
+@import 'tailwindcss';
+
+:root {
+  --paper: #f6f7f9;
+  --card: #ffffff;
+  --ink: #1c2433;
+  --ink-muted: #5a6475;
+  --post-blue: #2c55c9;
+  --cancel-red: #c2352b;
+  --ochre: #c98a12;
+  --rule: #d7dbe2;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #131822;
+    --card: #1c2330;
+    --ink: #e8ebf0;
+    --ink-muted: #a1a9b7;
+    --post-blue: #4f73d8;
+    --cancel-red: #d75349;
+    --ochre: #eba623;
+    --rule: #2e3644;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-post: var(--post-blue);
+  --color-cancel: var(--cancel-red);
+  --color-ochre: var(--ochre);
+  --color-rule: var(--rule);
+
+  --font-sans: 'Archivo Variable', system-ui, -apple-system, sans-serif;
+
+  --text-caption: 13px;
+  --text-caption--line-height: 18px;
+  --text-body: 15px;
+  --text-body--line-height: 22px;
+  --text-lead: 17px;
+  --text-lead--line-height: 24px;
+  --text-title: 22px;
+  --text-title--line-height: 28px;
+  --text-display: 28px;
+  --text-display--line-height: 34px;
+
+  --radius-card: 12px;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    @apply bg-paper font-sans text-body text-ink antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--post-blue);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 150ms !important;
+    transition-duration: 150ms !important;
+  }
+}

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#2C55C9"/>
+  <defs>
+    <mask id="perf">
+      <rect width="512" height="512" fill="#fff"/>
+      <g fill="#000">
+        <circle cx="152" cy="116" r="11"/><circle cx="194" cy="116" r="11"/><circle cx="236" cy="116" r="11"/><circle cx="278" cy="116" r="11"/><circle cx="320" cy="116" r="11"/><circle cx="362" cy="116" r="11"/>
+        <circle cx="152" cy="396" r="11"/><circle cx="194" cy="396" r="11"/><circle cx="236" cy="396" r="11"/><circle cx="278" cy="396" r="11"/><circle cx="320" cy="396" r="11"/><circle cx="362" cy="396" r="11"/>
+        <circle cx="132" cy="136" r="11"/><circle cx="132" cy="178" r="11"/><circle cx="132" cy="220" r="11"/><circle cx="132" cy="262" r="11"/><circle cx="132" cy="304" r="11"/><circle cx="132" cy="346" r="11"/><circle cx="132" cy="376" r="11"/>
+        <circle cx="380" cy="136" r="11"/><circle cx="380" cy="178" r="11"/><circle cx="380" cy="220" r="11"/><circle cx="380" cy="262" r="11"/><circle cx="380" cy="304" r="11"/><circle cx="380" cy="346" r="11"/><circle cx="380" cy="376" r="11"/>
+      </g>
+    </mask>
+  </defs>
+  <rect x="132" y="116" width="248" height="280" fill="#fff" mask="url(#perf)"/>
+  <rect x="160" y="144" width="192" height="224" fill="none" stroke="#2C55C9" stroke-width="6"/>
+  <g fill="none" stroke="#C2352B" stroke-width="16" stroke-linecap="round" transform="rotate(-6 256 256)">
+    <path d="M96 212c27-20 53-20 80 0s53 20 80 0 53-20 80 0 53 20 80 0"/>
+    <path d="M96 258c27-20 53-20 80 0s53 20 80 0 53-20 80 0 53 20 80 0"/>
+    <path d="M96 304c27-20 53-20 80 0s53 20 80 0 53-20 80 0 53 20 80 0"/>
+  </g>
+</svg>
