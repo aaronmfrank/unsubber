@@ -3,7 +3,7 @@ import { useSession } from '../state/session';
 import { Button } from './Button';
 
 export function SignInScreen() {
-  const { status, error, authMode, configured, signIn } = useSession();
+  const { status, error, authMode, configured, rememberedEmail, signIn } = useSession();
   const signingIn = status === 'signing_in';
   const showModeSwitch = authMode === 'redirect' || isStandalone();
 
@@ -19,8 +19,13 @@ export function SignInScreen() {
 
       <div className="flex flex-col gap-3">
         <Button onClick={() => void signIn()} disabled={signingIn || !configured} className="w-full">
-          {signingIn ? 'Signing in…' : 'Sign in with Google'}
+          {signingIn ? 'Signing in…' : rememberedEmail ? `Continue as ${rememberedEmail}` : 'Sign in with Google'}
         </Button>
+        {rememberedEmail && (
+          <Button variant="quiet" className="self-start" disabled={signingIn} onClick={() => void signIn({ differentAccount: true })}>
+            Use a different account
+          </Button>
+        )}
         <p className="text-caption text-ink-muted">
           Unsubber reads sender names, subjects and snippets from Gmail. Everything stays on this device.
         </p>

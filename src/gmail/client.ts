@@ -1,15 +1,17 @@
 import { AuthExpiredError, type AuthProvider } from '../auth';
-import { backoffDelay, createLimiter, isRetryableStatus, sleep } from './rateLimit';
+import { backoffDelay, createLimiter, isRateLimitError, isServerError, sleep } from './rateLimit';
 import type { GmailMessage, GmailMessageList, GmailMessageRef, GmailProfile } from './types';
 
 const BASE_URL = 'https://gmail.googleapis.com/gmail/v1/users/me';
-const MAX_RETRIES = 6;
+/** With backoff capped at 64 seconds, this rides out a full per-minute quota window several times over. */
+const MAX_RETRIES = 8;
 
 export class GmailError extends Error {
   override name = 'GmailError';
   constructor(
     readonly status: number,
     message: string,
+    readonly rateLimited = false,
   ) {
     super(message);
   }
@@ -23,8 +25,9 @@ export interface GmailClientEvents {
 export type GmailClient = ReturnType<typeof createGmailClient>;
 
 export function createGmailClient(auth: AuthProvider, events: GmailClientEvents = {}) {
-  // Gmail allows 250 quota units per user per second; most calls cost 5.
-  const limiter = createLimiter({ maxConcurrent: 10, perSecond: 40 });
+  // Gmail's per-user quota is 15,000 units a minute and most calls cost 5. 25 calls a second
+  // uses half of it, leaving room for bursts and for the app open on a second device.
+  const limiter = createLimiter({ maxConcurrent: 10, perSecond: 25 });
   let forceInvalidTokenOnce = false;
   let refreshing: Promise<string> | null = null;
 
@@ -61,30 +64,40 @@ export function createGmailClient(auth: AuthProvider, events: GmailClientEvents 
   }
 
   async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-    let refreshed = false;
+    let refreshedToken: string | null = null;
     for (let attempt = 0; ; attempt++) {
       let response: Response;
       try {
-        response = await send(path, init, await currentToken());
+        response = await send(path, init, refreshedToken ?? (await currentToken()));
       } catch (error) {
         if (error instanceof AuthExpiredError || attempt >= MAX_RETRIES) throw error;
         await sleep(backoffDelay(attempt));
         continue;
       }
 
-      if (response.status === 401 && !refreshed) {
-        refreshed = true;
-        await refreshToken();
+      if (response.ok) {
+        if (response.status === 204) return undefined as T;
+        return (await response.json()) as T;
+      }
+      if (response.status === 401 && !refreshedToken) {
+        refreshedToken = await refreshToken();
         attempt--;
         continue;
       }
-      if ((isRetryableStatus(response.status) || (await isRateLimited403(response))) && attempt < MAX_RETRIES) {
-        await sleep(backoffDelay(attempt, response.headers.get('Retry-After')));
+
+      const body = await readJson(response);
+      const canRetry = attempt < MAX_RETRIES;
+      if (isRateLimitError(response.status, body)) {
+        if (!canRetry) throw new GmailError(response.status, errorMessage(response, body), true);
+        // Per-user limits are shared, so every request waits, not just this one.
+        limiter.pause(backoffDelay(attempt + 1, response.headers.get('Retry-After')));
         continue;
       }
-      if (!response.ok) throw new GmailError(response.status, await errorMessage(response));
-      if (response.status === 204) return undefined as T;
-      return (await response.json()) as T;
+      if (isServerError(response.status) && canRetry) {
+        await sleep(backoffDelay(attempt));
+        continue;
+      }
+      throw new GmailError(response.status, errorMessage(response, body));
     }
   }
 
@@ -125,23 +138,15 @@ export function createGmailClient(auth: AuthProvider, events: GmailClientEvents 
   };
 }
 
-async function isRateLimited403(response: Response): Promise<boolean> {
-  if (response.status !== 403) return false;
+async function readJson(response: Response): Promise<unknown> {
   try {
-    const body = (await response.clone().json()) as { error?: { errors?: { reason?: string }[] } };
-    const reason = body.error?.errors?.[0]?.reason;
-    return reason === 'rateLimitExceeded' || reason === 'userRateLimitExceeded';
+    return await response.json();
   } catch {
-    return false;
+    return null;
   }
 }
 
-async function errorMessage(response: Response): Promise<string> {
-  try {
-    const body = (await response.json()) as { error?: { message?: string } };
-    if (body.error?.message) return body.error.message;
-  } catch {
-    // Body wasn't JSON; fall through to the status text.
-  }
-  return `Gmail request failed (${response.status} ${response.statusText}).`;
+function errorMessage(response: Response, body: unknown): string {
+  const message = (body as { error?: { message?: string } } | null)?.error?.message;
+  return message || `Gmail request failed (${response.status} ${response.statusText}).`;
 }

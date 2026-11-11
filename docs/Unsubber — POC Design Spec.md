@@ -99,6 +99,8 @@ All Gmail access runs from the browser with a short-lived access token. Nothing 
 
 - Use the Google Identity Services token client (`google.accounts.oauth2.initTokenClient`). It returns an access token that lasts about an hour, with no refresh token.
 - Keep the token in memory only. Never write it to IndexedDB or localStorage.
+- Because of that, every app open needs one tap to sign in; iOS blocks the popup without a tap. Remember the last account (the address only) and offer Continue as that address, which requests the token with `prompt: ''` and a `login_hint` so the account chooser is skipped. Removing the tap entirely needs a refresh token, which needs a backend (Phase 2).
+- If a different Gmail account signs in, clear local data before scanning. The POC holds one account's data.
 - On a 401, call `requestAccessToken({ prompt: '' })` to get a new token without the consent screen, then retry the request once.
 - Wrap all of this in an `AuthProvider` interface so the Capacitor phase can swap in native Google Sign-In. Google blocks OAuth inside embedded webviews.
 
@@ -121,7 +123,7 @@ Request all three at first sign-in. All are restricted or sensitive scopes, whic
 5. For each sender, keep counts, the newest message's subject, snippet and ids, and parse `unsubMethods` from the newest message that has a `List-Unsubscribe` header.
 6. Save senders and a slim message index to IndexedDB. Save the `historyId` from `users.getProfile` taken at scan start.
 
-Rate limits: Gmail allows 250 quota units per user per second, and `messages.get` costs 5. Run at most 10 requests in flight, stay under 40 gets per second, and back off exponentially on 429 and 5xx.
+Rate limits: Gmail enforces 15,000 quota units per user per minute, and `messages.get` and `messages.list` cost 5 each. Run at most 10 requests in flight and stay under 25 requests per second, which uses about half the quota. On a rate-limit response (429, or 403 with a rate-limit reason) pause every request, not just the one that failed, then back off exponentially up to 64 seconds so the per-minute window can recover. Back off per request on 5xx. If retries run out, the scan screen resumes on its own after a minute. The first iPhone scan hit the quota at 40 requests per second with per-request backoff only.
 
 Unsubscribe emails sent by the app land in Sent. Record their message ids and exclude them from step 1, or every unsubscribe address becomes a person you talk to.
 
@@ -181,6 +183,20 @@ Swiping in Saved for later or Re-review keeps uses the same three actions. Keepi
 ### Undo
 
 In queue mode, undo pops a stack of swipes and restores each sender's `prevStatus`, back to the start of the session. Committed actions cannot be undone. In sudden death, undo cancels any unsubscribe still inside its 3-second window.
+
+### Filter swipe (planned, milestone 8)
+
+Many senders are worth keeping but don't need to sit in the inbox, such as receipts, social notifications and loyalty programs. Down, the unused direction, sets up a Gmail filter for the sender instead of unsubscribing.
+
+| Gesture | Key | Action | Overlay label |
+| --- | --- | --- | --- |
+| Swipe down | Down arrow | Filter: open the filter sheet for this sender | Filter |
+
+- **Filter sheet:** pick one or more of Skip the inbox (archive), Mark as read, and Apply label. Apply label defaults to `Unsubber/<domain>`. The last choice is remembered as the default for the next sheet, so a run of similar senders takes one tap each.
+- **Execution:** `users.settings.filters.create` with criteria `{ from: <address> }` and the chosen actions: remove `INBOX`, remove `UNREAD`, add the label. Then apply the same change to the sender's existing inbox mail with `messages.batchModify`. It uses the `gmail.settings.basic` scope already requested for Block.
+- **Data model:** a new sender status `filtered`, plus a `filterId` and the chosen actions on the sender record so History can show and remove the filter. Attempt method `filter_archive`. Filtered senders leave the Main deck, aren't checked for repeat offenses, and can be reopened from History.
+- **Queue and undo:** filters queue and commit like unsubscribes, with the confirm sheet counting them separately, such as "8 unsubscribe, 3 filter". Undo restores `prevStatus` before commit. In sudden death, filters fire after the same 3-second undo window.
+- **Touch conflict:** a downward drag on iPhone can trigger page scroll or pull-to-refresh. The card needs `touch-action: none` and `overscroll-behavior: none` on the deck, checked on a home-screen install.
 
 ## Unsubscribe execution
 
@@ -438,6 +454,8 @@ Seven milestones, built in order. Cursor should not start a milestone until the 
    - Done when: matching and grace tests pass, and a seeded test sender with mail after the grace period shows stamped at the front of Main.
 7. **History, settings and older mail.** History screen, Scan older mail, export and import, clear data, sign out.
    - Done when: an export from desktop imported on iPhone reproduces the same decks and history.
+8. **Filter swipe.** Down swipe and arrow key, filter sheet, filter creation plus a batch change to existing mail, `filtered` status, History entry with Remove filter. Builds on the archive code from milestone 4 and the filter and label code from Block in milestone 6, so it can move up to directly after milestone 6 if the Main deck needs it sooner.
+   - Done when: a down swipe on a test sender creates the Gmail filter, archives or marks read its existing inbox mail, and new mail from that sender skips the inbox.
 
 ## Phase 2 and open items
 
@@ -445,7 +463,7 @@ Phase 2 starts when the POC is in daily use. The path ends at TestFlight unless 
 
 ### Phase 2
 
-- **Keep flow options.** In Re-review keeps, offer filter-and-auto-archive as an alternative to unsubscribe, with unsubscribe as the last resort. Flow to be designed.
+- **Keep flow options.** In Re-review keeps, offer filter-and-auto-archive as an alternative to unsubscribe, with unsubscribe as the last resort. The filter swipe (milestone 8) covers the mechanics; this item is the Re-review prompt that suggests it.
 - **Real storage.** Supabase adapter and sync across devices.
 - **Confirmed unsubscribes.** Serverless function that sends the one-click POST and returns the real status.
 - **Live detection.** Gmail push notifications through Pub/Sub, so repeat offenders are flagged without opening the app.
@@ -457,4 +475,5 @@ Phase 2 starts when the POC is in daily use. The path ends at TestFlight unless 
 - [ ] Confirm Block and Report spam belong in the POC. This spec assumes yes; dropping them removes the `gmail.settings.basic` scope.
 - [ ] Check whether a Gmail filter created through the API can add the `TRASH` label. If it can, Block sends mail to Trash instead of the `Unsubber/Blocked` label.
 - [ ] Decide whether senders that share a domain and `List-Id` should merge into one card. This spec keeps one card per from-address.
-- [ ] Verify GIS popup sign-in from the iOS home-screen app (milestone 1).
+- [x] Verify GIS popup sign-in from the iOS home-screen app (milestone 1). Popup works from the home-screen icon; the redirect fallback is built but not needed so far.
+- [ ] Filter swipe: decide whether one filter per domain (`from:@brand.com`) should be offered alongside one per address, and whether to bulk-filter every sender with the same `List-Id`.

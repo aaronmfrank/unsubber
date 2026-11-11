@@ -12,10 +12,12 @@ interface SessionState {
   authMode: AuthMode;
   configured: boolean;
   email: string | null;
+  /** The last account signed in on this device, offered as "Continue as". Cleared on sign out. */
+  rememberedEmail: string | null;
   error: string | null;
   tokenRefreshes: number;
   init(): Promise<void>;
-  signIn(): Promise<void>;
+  signIn(options?: { differentAccount?: boolean }): Promise<void>;
   signOut(): Promise<void>;
 }
 
@@ -60,6 +62,7 @@ export const useSession = create<SessionState>()((set, get) => ({
   authMode: auth.mode,
   configured: Boolean(clientId),
   email: null,
+  rememberedEmail: localStorage.getItem(LOGIN_HINT_KEY),
   error: null,
   tokenRefreshes: 0,
 
@@ -68,12 +71,13 @@ export const useSession = create<SessionState>()((set, get) => ({
     return initPromise;
   },
 
-  async signIn() {
+  async signIn({ differentAccount = false } = {}) {
     const wasExpired = get().status === 'expired';
     set({ status: 'signing_in', error: null });
     try {
-      await auth.signIn(get().email ?? localStorage.getItem(LOGIN_HINT_KEY) ?? undefined);
-      set({ status: 'signed_in', email: await loadProfile() });
+      await auth.signIn(differentAccount ? undefined : (get().email ?? get().rememberedEmail ?? undefined));
+      const email = await loadProfile();
+      set({ status: 'signed_in', email, rememberedEmail: email });
     } catch (error) {
       const status = wasExpired || error instanceof AuthExpiredError ? 'expired' : 'signed_out';
       set({ status, error: errorText(error) });
@@ -83,6 +87,6 @@ export const useSession = create<SessionState>()((set, get) => ({
   async signOut() {
     await auth.signOut();
     localStorage.removeItem(LOGIN_HINT_KEY);
-    set({ status: 'signed_out', email: null, error: null, tokenRefreshes: 0 });
+    set({ status: 'signed_out', email: null, rememberedEmail: null, error: null, tokenRefreshes: 0 });
   },
 }));

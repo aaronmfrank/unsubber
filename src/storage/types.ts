@@ -66,6 +66,8 @@ export interface ScanWindow {
 }
 
 export interface MetaValues {
+  /** The Gmail account this data belongs to. */
+  accountEmail: string;
   historyId: string;
   lastSyncAt: string;
   scannedWindows: ScanWindow[];

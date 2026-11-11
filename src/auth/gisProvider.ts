@@ -29,6 +29,7 @@ export class GisAuthProvider implements AuthProvider {
   private client: google.accounts.oauth2.TokenClient | null = null;
   private token: AccessToken | null = null;
   private loginHint: string | undefined;
+  private quietSignInFailed = false;
   private pending: { resolve: (token: string) => void; reject: (error: Error) => void } | null = null;
   private inflight: Promise<string> | null = null;
 
@@ -45,9 +46,17 @@ export class GisAuthProvider implements AuthProvider {
     });
   }
 
+  /** With a login hint, tries the no-prompt flow first so a returning user skips the account chooser. */
   async signIn(loginHint?: string): Promise<void> {
     this.loginHint = loginHint;
-    await this.requestToken(undefined);
+    const quiet = Boolean(loginHint) && !this.quietSignInFailed;
+    try {
+      await this.requestToken(quiet ? '' : undefined);
+    } catch (error) {
+      if (!quiet || error instanceof MissingScopesError) throw error;
+      this.quietSignInFailed = true;
+      throw new AuthError('Google needs you to confirm your account. Tap sign in again.');
+    }
   }
 
   getToken(): string | null {
