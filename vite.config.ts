@@ -8,6 +8,7 @@ const base = '/unsubber/';
 
 export default defineConfig({
   base,
+  build: { chunkSizeWarningLimit: 700 },
   plugins: [
     react(),
     tailwindcss(),
