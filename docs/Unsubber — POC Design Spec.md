@@ -182,7 +182,7 @@ Swiping in Saved for later or Re-review keeps uses the same three actions. Keepi
 
 ### Undo
 
-In queue mode, undo pops a stack of swipes and restores each sender's `prevStatus`, back to the start of the session. Committed actions cannot be undone. In sudden death, undo cancels any unsubscribe still inside its 3-second window.
+In queue mode, undo pops a stack of swipes and restores each sender's `prevStatus`, back to the start of the session. A session is one visit to a deck: switching tabs starts a new one, and the card order is frozen for the session so cards never jump. Holding an arrow key swipes one card, not a run. Committed actions cannot be undone. In sudden death, undo cancels any unsubscribe still inside its 3-second window.
 
 ### Filter swipe (planned, milestone 8)
 

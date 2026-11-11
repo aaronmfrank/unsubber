@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 import { useScan } from '../state/scan';
 import { useSession } from '../state/session';
-import { HomeScreen } from './HomeScreen';
+import { AppShell } from './AppShell';
 import { ScanScreen } from './ScanScreen';
 import { SignInScreen } from './SignInScreen';
+import { InkFilter } from './Stamp';
 
 export function App() {
   const status = useSession((s) => s.status);
@@ -20,10 +21,22 @@ export function App() {
     if (status === 'signed_in' && email) void ensureScanned(email);
   }, [status, email, ensureScanned]);
 
-  const loading = <main className="grid min-h-dvh place-items-center text-ink-muted">Loading…</main>;
-  if (status === 'initializing') return loading;
+  return (
+    <>
+      <InkFilter />
+      <Screen status={status} email={email} scanStatus={scanStatus} />
+    </>
+  );
+}
+
+function Screen({ status, email, scanStatus }: { status: string; email: string | null; scanStatus: string }) {
+  if (status === 'initializing') return <Loading />;
   const hasSession = status === 'signed_in' || status === 'expired' || (status === 'signing_in' && email);
   if (!hasSession) return <SignInScreen />;
-  if (scanStatus === 'checking' && status === 'signed_in') return loading;
-  return scanStatus === 'done' ? <HomeScreen /> : <ScanScreen />;
+  if (scanStatus === 'checking' && status === 'signed_in') return <Loading />;
+  return scanStatus === 'done' ? <AppShell /> : <ScanScreen />;
+}
+
+function Loading() {
+  return <main className="grid min-h-dvh place-items-center text-ink-muted">Loading…</main>;
 }

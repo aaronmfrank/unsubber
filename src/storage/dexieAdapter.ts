@@ -77,6 +77,15 @@ export class DexieStorage implements StorageAdapter {
     return after ? messages.where('date').above(after).count() : messages.count();
   }
 
+  listRecentMessages(senderId: string, limit: number) {
+    return this.db.messages
+      .where('[senderId+date]')
+      .between([senderId, Dexie.minKey], [senderId, Dexie.maxKey])
+      .reverse()
+      .limit(limit)
+      .toArray();
+  }
+
   async filterNewMessageIds(ids: string[]) {
     const existing = await this.db.messages.bulkGet(ids);
     return ids.filter((_, i) => !existing[i]);

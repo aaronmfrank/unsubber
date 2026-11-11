@@ -16,6 +16,8 @@ export interface StorageAdapter {
 
   addMessages(messages: MessageIndexRow[]): Promise<void>;
   countMessages(options?: { senderId?: string; after?: string }): Promise<number>;
+  /** A sender's newest messages first. */
+  listRecentMessages(senderId: string, limit: number): Promise<MessageIndexRow[]>;
   /** Returns the ids from `ids` that are not stored yet. */
   filterNewMessageIds(ids: string[]): Promise<string[]>;
   /** Writes a scan batch atomically, so a crash never leaves counts out of step with the message index. */
