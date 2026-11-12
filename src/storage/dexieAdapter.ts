@@ -58,6 +58,10 @@ export class DexieStorage implements StorageAdapter {
     return senders;
   }
 
+  listSendersByDomain(domains: string[]) {
+    return domains.length === 0 ? Promise.resolve([]) : this.db.senders.where('domain').anyOf(domains).toArray();
+  }
+
   countSenders() {
     return this.db.senders.count();
   }

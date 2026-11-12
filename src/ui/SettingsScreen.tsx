@@ -55,7 +55,7 @@ export function SettingsScreen() {
           <dt className="text-ink-muted">Version</dt>
           <dd>{BUILD.version}</dd>
           <dt className="text-ink-muted">Milestone</dt>
-          <dd>{MILESTONE} of 8 done</dd>
+          <dd>{MILESTONE} is the latest done</dd>
           <dt className="text-ink-muted">Build</dt>
           <dd className="font-mono text-caption leading-[22px]">{BUILD.commit}</dd>
           <dt className="text-ink-muted">Built</dt>

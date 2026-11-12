@@ -1,13 +1,12 @@
 import { useEffect } from 'react';
 import { useNav } from '../state/nav';
-import { useQueue } from '../state/queue';
+import { useToast } from '../state/toast';
 import { number } from './format';
 
 const AUTO_DISMISS_MS = 10_000;
 
 export function Toast() {
-  const toast = useQueue((s) => s.toast);
-  const dismiss = useQueue((s) => s.dismissToast);
+  const { toast, dismiss } = useToast();
   const setScreen = useNav((s) => s.setScreen);
 
   useEffect(() => {
@@ -17,6 +16,7 @@ export function Toast() {
   }, [toast, dismiss]);
 
   if (!toast) return null;
+  const needYou = toast.needYou ?? 0;
   return (
     <div
       role="status"
@@ -26,7 +26,7 @@ export function Toast() {
     >
       <p className="flex-1">
         {toast.message}{' '}
-        {toast.needYou > 0 && (
+        {needYou > 0 && (
           <button
             className="font-semibold text-post underline underline-offset-2"
             onClick={() => {
@@ -34,7 +34,7 @@ export function Toast() {
               dismiss();
             }}
           >
-            {number.format(toast.needYou)} {toast.needYou === 1 ? 'needs' : 'need'} you.
+            {number.format(needYou)} {needYou === 1 ? 'needs' : 'need'} you.
           </button>
         )}
       </p>

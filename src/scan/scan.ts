@@ -3,9 +3,10 @@ import { getHeader, parseAddressList } from '../gmail/headers';
 import type { GmailMessage } from '../gmail/types';
 import type { StorageAdapter } from '../storage';
 import type { ScanWindow } from '../storage/types';
+import { ingestMessages, type IngestResult } from './ingest';
 import { mapPool } from './pool';
-import { mergeIntoSenders, SCAN_HEADERS, toIndexRow, toScannedMessage, type ScannedMessage } from './senders';
-import { initialWindow, windowQuery } from './windows';
+import { SCAN_HEADERS, toScannedMessage, type ScannedMessage } from './senders';
+import { initialWindow, windowQuery, windowSince } from './windows';
 
 const PEOPLE_QUERY = 'in:sent newer_than:365d';
 const PEOPLE_HEADERS = ['To', 'Cc', 'Bcc'] as const;
@@ -76,26 +77,71 @@ export async function scanWindow(deps: ScanDeps, window: ScanWindow): Promise<vo
   const refs = await gmail.listAllMessages(windowQuery(window), (found) => onProgress({ phase: 'listing', found }));
   const pending = await storage.filterNewMessageIds(refs.map((ref) => ref.id));
 
-  let done = refs.length - pending.length;
+  const skipped = refs.length - pending.length;
   let senders = await storage.countSenders();
-  onProgress({ phase: 'reading', done, total: refs.length, senders });
+  onProgress({ phase: 'reading', done: skipped, total: refs.length, senders });
 
-  for (let start = 0; start < pending.length; start += BATCH_SIZE) {
-    const ids = pending.slice(start, start + BATCH_SIZE);
-    const fetched = await mapPool(ids, CONCURRENCY, (id) => getMetadataOrSkip(gmail, id, SCAN_HEADERS));
+  await readAndIngest(deps, pending, people, (done, batch) => {
+    senders += batch.newSenders;
+    onProgress({ phase: 'reading', done: skipped + done, total: refs.length, senders });
+  });
+}
 
+/** Fetches metadata for new message ids in batches and folds each batch into senders. */
+async function readAndIngest(
+  { gmail, storage }: Pick<ScanDeps, 'gmail' | 'storage'>,
+  ids: string[],
+  people: ReadonlySet<string>,
+  onBatch?: (done: number, batch: IngestResult) => void,
+): Promise<IngestResult> {
+  const total: IngestResult = { messages: 0, newSenders: 0, newOffenders: [], changed: [] };
+  for (let start = 0; start < ids.length; start += BATCH_SIZE) {
+    const batchIds = ids.slice(start, start + BATCH_SIZE);
+    const fetched = await mapPool(batchIds, CONCURRENCY, (id) => getMetadataOrSkip(gmail, id, SCAN_HEADERS));
     const messages = fetched
       .map((message) => (message ? toScannedMessage(message) : null))
       .filter((message): message is ScannedMessage => message !== null && !people.has(message.fromAddress));
 
-    const existing = await storage.getSenders([...new Set(messages.map((m) => m.fromAddress))]);
-    const changed = mergeIntoSenders(existing, messages);
-    await storage.saveScanBatch(messages.map(toIndexRow), [...changed.values()]);
-
-    senders += changed.size - existing.size;
-    done += ids.length;
-    onProgress({ phase: 'reading', done, total: refs.length, senders });
+    const batch = await ingestMessages(storage, messages);
+    total.messages += batch.messages;
+    total.newSenders += batch.newSenders;
+    total.newOffenders.push(...batch.newOffenders);
+    total.changed.push(...batch.changed);
+    onBatch?.(start + batchIds.length, batch);
   }
+  return total;
+}
+
+export type SyncResult = IngestResult;
+
+/**
+ * Pulls mail that arrived since the last sync and checks it for repeat offenders.
+ * History ids expire after about a week; then it rescans from the last sync date instead.
+ */
+export async function syncNewMail(deps: Omit<ScanDeps, 'onProgress'>): Promise<SyncResult> {
+  const { gmail, storage } = deps;
+  const startHistoryId = await storage.getMeta('historyId');
+  if (!startHistoryId) return { messages: 0, newSenders: 0, newOffenders: [], changed: [] };
+  const startedAt = new Date().toISOString();
+
+  let ids: string[];
+  let historyId: string;
+  try {
+    ({ ids, historyId } = await gmail.listAddedMessageIds(startHistoryId));
+  } catch (error) {
+    if (!(error instanceof GmailError && error.status === 404)) throw error;
+    historyId = (await gmail.getProfile()).historyId;
+    const lastSyncAt = (await storage.getMeta('lastSyncAt')) ?? startedAt;
+    ids = (await gmail.listAllMessages(windowQuery(windowSince(new Date(lastSyncAt))))).map((ref) => ref.id);
+  }
+
+  const pending = await storage.filterNewMessageIds(ids);
+  const people = await ensurePeopleSet({ ...deps, onProgress: () => {} });
+  const result = await readAndIngest(deps, pending, people);
+
+  await storage.setMeta('historyId', historyId);
+  await storage.setMeta('lastSyncAt', startedAt);
+  return result;
 }
 
 /** First run: the last 90 days. Resumes an interrupted scan with the same window and history id. */

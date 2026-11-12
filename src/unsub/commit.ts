@@ -7,6 +7,9 @@ const CONCURRENCY = 4;
 export interface CommitSummary {
   unsubscribed: number;
   manual: number;
+  blocked: number;
+  /** Escalations that failed; those senders are back in Main, stamped. */
+  failed: number;
   archiveFailed: number;
   /** Set when the run stopped early; the senders it didn't reach stay queued. */
   stoppedBy: Error | null;
@@ -47,6 +50,8 @@ export async function commitQueue(deps: Omit<RunDeps, 'people'>, { onProgress, o
   return {
     unsubscribed: finished.filter((r) => r.outcome === 'unsubscribed').length,
     manual: finished.filter((r) => r.outcome === 'manual').length,
+    blocked: finished.filter((r) => r.outcome === 'blocked').length,
+    failed: finished.filter((r) => r.outcome === 'failed').length,
     archiveFailed: finished.filter((r) => r.archived === null).length,
     stoppedBy,
     remaining: senders.length - finished.length,

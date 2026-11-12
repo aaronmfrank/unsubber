@@ -3,21 +3,21 @@ import { AuthExpiredError } from '../auth';
 import { GmailError } from '../gmail/client';
 import { storage, type Sender } from '../storage';
 import { commitQueue, markManualDone, type CommitSummary } from '../unsub/commit';
-import { browserExecutor } from '../unsub/executor';
-import { methodGroup, resolveMethods, type MethodGroup } from '../unsub/resolve';
+import { nextEscalation, STEP_LABEL } from '../unsub/escalation';
+import { blockOrReportNow, browserExecutor } from '../unsub/executor';
+import { methodGroup, resolveMethods } from '../unsub/resolve';
 import { flushDeckWrites, useDeck } from './deck';
 import { gmail, useSession } from './session';
+import { useToast, type Toast } from './toast';
+
+/** How the confirm sheet counts a sender. Repeat offenders count by their escalation step. */
+export type QueueGroup = 'one_click' | 'email' | 'needs_you' | 'block' | 'report_spam';
 
 export interface QueuedSender {
   sender: Sender;
-  group: MethodGroup;
-}
-
-export interface Toast {
-  message: string;
-  /** Senders that landed in the manual queue; the toast links there. */
-  needYou: number;
-  tone: 'ok' | 'error';
+  group: QueueGroup;
+  /** Row label: the method, or the escalation step for a repeat offender. */
+  label: string;
 }
 
 interface QueueState {
@@ -25,31 +25,60 @@ interface QueueState {
   items: QueuedSender[];
   running: boolean;
   progress: { done: number; total: number } | null;
-  toast: Toast | null;
   openSheet(): Promise<void>;
   closeSheet(): void;
   /** Takes a sender out of the queue before commit, restoring the status it had. */
   removeFromQueue(senderId: string): Promise<void>;
   commit(): Promise<void>;
   markDone(senderId: string, openedLink: string | null): Promise<void>;
-  dismissToast(): void;
+  blockOrReport(senderId: string, action: 'block' | 'report_spam'): Promise<void>;
 }
 
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 
+const GROUP_LABEL: Record<QueueGroup, string> = {
+  one_click: 'One-click',
+  email: 'Email',
+  needs_you: 'Needs you',
+  block: 'Block',
+  report_spam: 'Report spam',
+};
+
+function classify(sender: Sender, people: ReadonlySet<string>): QueuedSender {
+  if (sender.prevStatus === 'repeat_offender') {
+    const step = nextEscalation(sender, people);
+    const group: QueueGroup =
+      step === 'retry_one_click' ? 'one_click' : step === 'email' ? 'email' : step === 'manual_link' ? 'needs_you' : step;
+    return { sender, group, label: STEP_LABEL[step] };
+  }
+  const group = methodGroup(resolveMethods(sender.unsubMethods, people));
+  return { sender, group, label: GROUP_LABEL[group] };
+}
+
+function errorText(error: Error): string {
+  if (error instanceof AuthExpiredError) return 'Gmail sign-in expired.';
+  if (error instanceof GmailError && error.rateLimited) return 'Gmail asked Unsubber to slow down.';
+  return `${error.message}.`;
+}
+
 function summaryToast(summary: CommitSummary): Toast {
   const parts: string[] = [];
   if (summary.stoppedBy) {
-    const still = `${summary.remaining} still queued.`;
-    if (summary.stoppedBy instanceof AuthExpiredError) parts.push(`Gmail sign-in expired. ${still} Sign in again and tap Unsubscribe.`);
-    else if (summary.stoppedBy instanceof GmailError && summary.stoppedBy.rateLimited)
-      parts.push(`Gmail asked Unsubber to slow down. ${still} Try again in a minute.`);
-    else parts.push(`Unsubscribing stopped: ${summary.stoppedBy.message}. ${still}`);
+    const retry = summary.stoppedBy instanceof AuthExpiredError ? 'Sign in again and tap Unsubscribe.' : 'Try again in a minute.';
+    parts.push(`${errorText(summary.stoppedBy)} ${summary.remaining} still queued. ${retry}`);
   }
   if (summary.unsubscribed > 0) parts.push(`Unsubscribed from ${summary.unsubscribed}.`);
+  if (summary.blocked > 0) parts.push(`Blocked ${summary.blocked}.`);
+  if (summary.failed > 0)
+    parts.push(`${summary.failed} ${plural(summary.failed, 'escalation', 'escalations')} failed and ${plural(summary.failed, 'is', 'are')} back in Main.`);
   if (summary.archiveFailed > 0)
     parts.push(`Couldn't archive mail from ${summary.archiveFailed} ${plural(summary.archiveFailed, 'sender', 'senders')}.`);
   return { message: parts.join(' '), needYou: summary.manual, tone: summary.stoppedBy ? 'error' : 'ok' };
+}
+
+async function peopleWithSelf(): Promise<Set<string>> {
+  const self = useSession.getState().email?.toLowerCase();
+  return new Set([...(await storage.listPeople()), ...(self ? [self] : [])]);
 }
 
 export const useQueue = create<QueueState>()((set, get) => ({
@@ -57,18 +86,16 @@ export const useQueue = create<QueueState>()((set, get) => ({
   items: [],
   running: false,
   progress: null,
-  toast: null,
 
   async openSheet() {
     await flushDeckWrites();
     const queue = await storage.listQueue();
     const senders = await storage.getSenders(queue.map((item) => item.senderId));
-    const self = useSession.getState().email?.toLowerCase();
-    const people = new Set([...(await storage.listPeople()), ...(self ? [self] : [])]);
+    const people = await peopleWithSelf();
     const items = queue
       .map((item) => senders.get(item.senderId))
       .filter((s): s is Sender => s?.status === 'queued')
-      .map((sender) => ({ sender, group: methodGroup(resolveMethods(sender.unsubMethods, people)) }));
+      .map((sender) => classify(sender, people));
     set({ sheetOpen: true, items, progress: null });
   },
 
@@ -91,8 +118,7 @@ export const useQueue = create<QueueState>()((set, get) => ({
   async commit() {
     const email = useSession.getState().email;
     if (get().running || !email) return;
-    const deck = useDeck.getState();
-    deck.lockSwipes(get().items.map((i) => i.sender.id));
+    useDeck.getState().lockSwipes(get().items.map((i) => i.sender.id));
     set({ running: true, progress: { done: 0, total: get().items.length } });
 
     let summary: CommitSummary;
@@ -105,11 +131,20 @@ export const useQueue = create<QueueState>()((set, get) => ({
         },
       );
     } catch (error) {
-      summary = { unsubscribed: 0, manual: 0, archiveFailed: 0, stoppedBy: error instanceof Error ? error : new Error(String(error)), remaining: get().items.length };
+      summary = {
+        unsubscribed: 0,
+        manual: 0,
+        blocked: 0,
+        failed: 0,
+        archiveFailed: 0,
+        stoppedBy: error instanceof Error ? error : new Error(String(error)),
+        remaining: get().items.length,
+      };
     }
 
     useDeck.getState().setQueueCount((await storage.listQueue()).length);
-    set({ running: false, sheetOpen: false, items: [], progress: null, toast: summaryToast(summary) });
+    set({ running: false, sheetOpen: false, items: [], progress: null });
+    useToast.getState().show(summaryToast(summary));
   },
 
   async markDone(senderId, openedLink) {
@@ -119,7 +154,21 @@ export const useQueue = create<QueueState>()((set, get) => ({
     useDeck.getState().patchSenders([updated]);
   },
 
-  dismissToast() {
-    set({ toast: null });
+  async blockOrReport(senderId, action) {
+    const sender = useDeck.getState().senders[senderId];
+    if (!sender) return;
+    try {
+      const updated = await blockOrReportNow(sender, action, { gmail, storage });
+      useDeck.getState().patchSenders([updated]);
+      useToast.getState().show({
+        message: action === 'block' ? `Blocked ${sender.id}. New mail skips the inbox.` : `Reported ${sender.id} as spam.`,
+        tone: 'ok',
+      });
+    } catch (error) {
+      useToast.getState().show({
+        message: `Couldn't ${action === 'block' ? 'block' : 'report'} ${sender.id}: ${errorText(error instanceof Error ? error : new Error(String(error)))} Try again.`,
+        tone: 'error',
+      });
+    }
   },
 }));

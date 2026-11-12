@@ -5,6 +5,8 @@ import { GmailError, type GmailClient } from '../gmail/client';
 import { DexieStorage } from '../storage/dexieAdapter';
 import type { Sender } from '../storage/types';
 import { commitQueue, markManualDone } from './commit';
+import { deckOrder } from '../state/deckLogic';
+import { escalationLadder, nextEscalation } from './escalation';
 import type { UnsubExecutor } from './executor';
 
 function sender(id: string, unsubMethods: Sender['unsubMethods']): Sender {
@@ -27,7 +29,7 @@ function sender(id: string, unsubMethods: Sender['unsubMethods']): Sender {
   };
 }
 
-function fakeGmail(options: { sendFails?: Error; bodyHtml?: string } = {}) {
+function fakeGmail(options: { sendFails?: Error; bodyHtml?: string; filterFails?: Error } = {}) {
   const archived: string[] = [];
   const sent: string[] = [];
   let sendCount = 0;
@@ -49,6 +51,20 @@ function fakeGmail(options: { sendFails?: Error; bodyHtml?: string } = {}) {
       archived.push(address);
       return 2;
     }),
+    labels: [] as { id: string; name: string }[],
+    filters: [] as unknown[],
+    listLabels: vi.fn(async () => gmail.labels),
+    createLabel: vi.fn(async (name: string) => {
+      const label = { id: `Label_${gmail.labels.length + 1}`, name };
+      gmail.labels.push(label);
+      return label;
+    }),
+    createFilter: vi.fn(async (filter: unknown) => {
+      if (options.filterFails) throw options.filterFails;
+      gmail.filters.push(filter);
+      return { id: `filter-${gmail.filters.length}` };
+    }),
+    reportSpamFrom: vi.fn(async () => 7),
   };
   return gmail as typeof gmail & GmailClient;
 }
@@ -83,7 +99,7 @@ describe('commitQueue', () => {
     const gmail = fakeGmail({ bodyHtml: '<a href="https://d.com/unsubscribe">Unsubscribe</a>' });
     const summary = await commitQueue({ gmail, storage, executor: okExecutor, selfAddress: 'me@gmail.com' });
 
-    expect(summary).toEqual({ unsubscribed: 2, manual: 2, archiveFailed: 0, stoppedBy: null, remaining: 0 });
+    expect(summary).toEqual({ unsubscribed: 2, manual: 2, blocked: 0, failed: 0, archiveFailed: 0, stoppedBy: null, remaining: 0 });
     expect(gmail.archived.sort()).toEqual(['link@c.com', 'mail@b.com', 'none@d.com', 'oneclick@a.com']);
     expect(await storage.listQueue()).toEqual([]);
 
@@ -144,6 +160,84 @@ describe('commitQueue', () => {
       selfAddress: 'me@gmail.com',
     });
     expect((await storage.getSender('mail@b.com'))?.status).toBe('manual');
+  });
+});
+
+describe('escalation', () => {
+  const offender = (id: string, methods: Sender['unsubMethods'], escalationStep: number): Sender => ({
+    ...sender(id, methods),
+    prevStatus: 'repeat_offender',
+    escalationStep,
+    unsubscribedAt: '2026-09-01T00:00:00.000Z',
+    returnCount: 3,
+  });
+  const run = (gmail = fakeGmail()) => commitQueue({ gmail, storage, executor: okExecutor, selfAddress: 'me@gmail.com' });
+
+  it('builds the ladder from what the sender supports', () => {
+    const all = offender('a@x.com', { oneClickUrl: 'https://x.com/1c', mailto: 'mailto:u@x.com', httpUrl: 'https://x.com/1c' }, 1);
+    expect(escalationLadder(all, new Set())).toEqual(['retry_one_click', 'email', 'manual_link', 'block', 'report_spam']);
+    expect(escalationLadder(offender('b@x.com', {}, 1), new Set())).toEqual(['block', 'report_spam']);
+    expect(escalationLadder(offender('c@x.com', { mailto: 'mailto:friend@x.com' }, 1), new Set(['friend@x.com']))).toEqual(['block', 'report_spam']);
+  });
+
+  it('walks up one rung per escalation and stays on the last', () => {
+    const methods = { oneClickUrl: 'https://x.com/1c', mailto: 'mailto:u@x.com' };
+    expect([1, 2, 3, 4, 9].map((step) => nextEscalation(offender('a@x.com', methods, step), new Set()))).toEqual([
+      'retry_one_click',
+      'email',
+      'block',
+      'report_spam',
+      'report_spam',
+    ]);
+  });
+
+  it('retries one-click and starts a new grace period', async () => {
+    await queue(offender('a@x.com', { oneClickUrl: 'https://x.com/1c' }, 1));
+    const summary = await run();
+    expect(summary.unsubscribed).toBe(1);
+    const stored = await storage.getSender('a@x.com');
+    expect(stored).toMatchObject({ status: 'unsubscribed', escalationStep: 2, returnCount: 3 });
+    expect(stored!.unsubscribedAt! > '2026-09-01T00:00:00.000Z').toBe(true);
+  });
+
+  it('blocks with a labelled Gmail filter, creating the label on first use', async () => {
+    await queue(offender('b@x.com', { oneClickUrl: 'https://x.com/1c' }, 2));
+    const gmail = fakeGmail();
+    const summary = await run(gmail);
+    expect(summary.blocked).toBe(1);
+    expect(gmail.labels.map((l) => l.name)).toEqual(['Unsubber', 'Unsubber/Blocked']);
+    expect(gmail.filters).toEqual([{ criteria: { from: 'b@x.com' }, action: { addLabelIds: ['Label_2'], removeLabelIds: ['INBOX'] } }]);
+    expect(await storage.getMeta('blockedLabelId')).toBe('Label_2');
+    expect((await storage.getSender('b@x.com'))?.status).toBe('blocked');
+    expect((await storage.listAttempts('b@x.com')).map((a) => `${a.method}:${a.detail}`)).toEqual(['filter_block:filter-1']);
+  });
+
+  it('reports spam as the last step', async () => {
+    await queue(offender('c@x.com', {}, 2));
+    const gmail = fakeGmail();
+    await run(gmail);
+    expect(gmail.reportSpamFrom).toHaveBeenCalledWith('c@x.com');
+    expect((await storage.getSender('c@x.com'))?.status).toBe('blocked');
+  });
+
+  it('sends a link-only offender back to the manual queue', async () => {
+    await queue(offender('d@x.com', { httpUrl: 'https://x.com/prefs' }, 1));
+    expect((await run()).manual).toBe(1);
+    expect((await storage.getSender('d@x.com'))?.status).toBe('manual');
+  });
+
+  it('puts a failed escalation back in Main without stopping the run', async () => {
+    await queue(offender('e@x.com', {}, 1), sender('f@x.com', { oneClickUrl: 'https://x.com/1c' }));
+    const summary = await run(fakeGmail({ filterFails: new GmailError(400, 'Invalid filter') }));
+    expect(summary).toMatchObject({ failed: 1, unsubscribed: 1, stoppedBy: null });
+    expect((await storage.getSender('e@x.com'))?.status).toBe('repeat_offender');
+    expect(deckOrder('main', await storage.listSenders())).toEqual(['e@x.com']);
+  });
+
+  it('treats an existing identical filter as blocked', async () => {
+    await queue(offender('g@x.com', {}, 1));
+    await run(fakeGmail({ filterFails: new GmailError(400, 'Filter already exists') }));
+    expect((await storage.getSender('g@x.com'))?.status).toBe('blocked');
   });
 });
 

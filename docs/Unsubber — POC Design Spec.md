@@ -25,7 +25,7 @@ In the POC:
 - Google sign-in in the browser, with Aaron's Gmail added as a test user on the OAuth consent screen.
 - A 90-day scan, plus on-demand scans of older 90-day windows.
 - Three-way swipe by touch and by arrow keys.
-- Queued unsubscribes with a commit step, and a sudden death mode that fires each one after a 3-second undo.
+- Queued unsubscribes with a commit step. A sudden death mode that fires each one after a 3-second undo is deferred and may be dropped.
 - A manual queue for senders that can't be unsubscribed automatically, with block and report-spam actions.
 - Repeat offender detection and escalation.
 - PWA install to the iPhone home screen.
@@ -276,6 +276,14 @@ On a stamped card, left queues the next step instead of a plain unsubscribe. Ste
 
 Steps 1 to 3 reset `unsubscribedAt` and start a new grace period. Steps 4 and 5 set status `blocked` and end tracking. Right means forgiven: status `kept`, tracking stops. Up saves for later, as on any card.
 
+Build notes (milestone 6):
+
+- `escalationStep` counts runs, the first unsubscribe included. The next step is rung `escalationStep - 1` of the sender's supported ladder, and the last rung (Report spam) repeats. A stamped card's left button, drag overlay and a hint line name the step, such as "Swipe left to block them with a Gmail filter."
+- A failed retry or Block leaves the sender stamped at the front of Main, one rung up for a failed retry, so the run never stops for one sender.
+- A message from a new address that matches a tracked sender by domain and `List-Id` counts toward that sender instead of creating a new card.
+- Sync runs when the app opens, when it returns to the foreground after 10 minutes or more, and from the ↻ button in the deck header. Sent, Drafts, Chats, Spam and Trash are skipped. New offenders reorder Main only if the deck session hasn't started; the toast says "1 repeat offender is back at the front of Main."
+- Block creates the labels `Unsubber` and `Unsubber/Blocked` on first use and caches the label id. An identical existing filter counts as blocked. Manual-queue rows offer Block and Report spam directly, with a confirm.
+
 ## Screens and UI
 
 Seven screens, one-column on phone, built around the card stack. The visual idea is postal: unwanted mail gets cancelled like a stamp.
@@ -444,7 +452,7 @@ It is unverified how the GIS sign-in popup behaves inside an iOS home-screen web
 
 ## Build plan
 
-Seven milestones, built in order. Cursor should not start a milestone until the previous one's done-when checks pass on desktop Chrome and on an iPhone home-screen install.
+Eight milestones, built in the order listed (sudden death, milestone 5, is deferred to the end). Cursor should not start a milestone until the previous one's done-when checks pass on desktop Chrome and on an iPhone home-screen install.
 
 1. **Skeleton and sign-in.** Vite, React, TypeScript, PWA and Tailwind scaffold, deployed to Pages by Actions. Sign in and show the signed-in Gmail address.
    - Done when: sign-in works on desktop and from the iPhone home-screen icon, and a 401 triggers a silent token refresh.
@@ -454,14 +462,14 @@ Seven milestones, built in order. Cursor should not start a milestone until the 
    - Done when: 50 cards can be cleared by keyboard alone with no dropped or doubled swipes.
 4. **Unsubscribe executor.** Header parser and method resolution with unit tests, queue, confirm sheet, one-click, mailto, archive, body-link extraction, manual queue with Mark done.
    - Done when: parser tests pass, a committed queue archives each sender's inbox mail, and mailto sends appear in `sentByApp`.
-5. **Sudden death.** Toggle, color treatment, per-swipe 3-second timers, undo toast.
-   - Done when: undo inside 3 seconds sends nothing, and a swipe left alone fires exactly once.
 6. **Repeat offenders.** Incremental sync, business-day grace period, sender matching, stamp, escalation steps, Block and Report spam.
    - Done when: matching and grace tests pass, and a seeded test sender with mail after the grace period shows stamped at the front of Main.
 7. **History, settings and older mail.** History screen, Scan older mail, export and import, clear data, sign out.
    - Done when: an export from desktop imported on iPhone reproduces the same decks and history.
 8. **Filter swipe.** Down swipe and arrow key, filter sheet, filter creation plus a batch change to existing mail, `filtered` status, History entry with Remove filter. Builds on the archive code from milestone 4 and the filter and label code from Block in milestone 6, so it can move up to directly after milestone 6 if the Main deck needs it sooner.
    - Done when: a down swipe on a test sender creates the Gmail filter, archives or marks read its existing inbox mail, and new mail from that sender skips the inbox.
+5. **Sudden death (deferred, may be dropped).** Toggle, color treatment, per-swipe 3-second timers, undo toast. Moved to the end on Nov 11: the queue and confirm sheet cover the need for now. Keeps its number so milestone references stay stable.
+   - Done when: undo inside 3 seconds sends nothing, and a swipe left alone fires exactly once.
 
 ## Phase 2 and open items
 

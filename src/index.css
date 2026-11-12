@@ -85,6 +85,7 @@
     letter-spacing: 0.04em;
     line-height: 1.1;
     text-transform: uppercase;
+    white-space: nowrap;
     transform: rotate(-6deg);
     filter: url(#ink-edge);
   }

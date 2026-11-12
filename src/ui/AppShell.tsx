@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useDeck } from '../state/deck';
 import { useNav, type Screen } from '../state/nav';
 import { useScan } from '../state/scan';
+import { useSync } from '../state/sync';
 import { ConfirmSheet } from './deck/ConfirmSheet';
 import { DeckScreen } from './deck/DeckScreen';
 import { ExpiredNotice } from './ExpiredNotice';
@@ -26,8 +27,16 @@ export function AppShell() {
   const manualCount = useDeck((s) => Object.values(s.senders).filter((sender) => sender.status === 'manual').length);
 
   useEffect(() => {
-    void load();
+    void load().then(() => useSync.getState().sync('open'));
   }, [scanVersion, load]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void useSync.getState().sync('resume');
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
 
   const tabs: { id: Screen; label: string }[] = [
     { id: 'deck', label: 'Deck' },

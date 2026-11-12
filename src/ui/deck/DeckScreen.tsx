@@ -3,6 +3,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { exitDirections, useDeck } from '../../state/deck';
 import { inDeck, type DeckId, type SwipeDirection } from '../../state/deckLogic';
 import { useQueue } from '../../state/queue';
+import { useSync } from '../../state/sync';
+import type { Sender } from '../../storage';
+import { nextEscalation, STEP_LABEL, STEP_SHORT_LABEL } from '../../unsub/escalation';
 import { Button } from '../Button';
 import { number } from '../format';
 import { SwipeCard } from './SwipeCard';
@@ -24,6 +27,11 @@ const KEY_DIRECTIONS: Record<string, SwipeDirection> = { ArrowLeft: 'left', Arro
 export function DeckScreen() {
   const { loaded, deck, order, index, senders, undoStack, queueCount, writeError, selectDeck, swipe, undo } = useDeck();
   const openSheet = useQueue((s) => s.openSheet);
+  const sync = useSync((s) => s.sync);
+  const syncing = useSync((s) => s.running);
+  const people = useDeck((s) => s.people);
+  const leftLabelFor = (sender: Sender) =>
+    sender.status === 'repeat_offender' ? STEP_LABEL[nextEscalation(sender, people)] : 'Unsubscribe';
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const topId = order[index];
   const visible = order.slice(index, index + 2);
@@ -83,6 +91,17 @@ export function DeckScreen() {
             {label} <span className="text-caption tabular-nums text-ink-muted">{number.format(deckCounts[id])}</span>
           </button>
         ))}
+          <button
+            onClick={() => void sync('manual')}
+            disabled={syncing}
+            aria-label={syncing ? 'Checking for new mail' : 'Check for new mail'}
+            title="Check for new mail"
+            className="ml-auto flex size-9 items-center justify-center rounded-md text-lead text-ink-muted transition hover:text-ink disabled:opacity-60"
+          >
+            <span aria-hidden="true" className={syncing ? 'animate-spin' : ''}>
+              ↻
+            </span>
+          </button>
         </div>
       </header>
 
@@ -99,6 +118,7 @@ export function DeckScreen() {
                   deck={deck}
                   isTop={i === 0}
                   expanded={i === 0 && expandedId === id}
+                  leftLabel={leftLabelFor(senders[id]!)}
                   onToggle={() => setExpandedId((current) => (current === id ? null : id))}
                   onSwipe={(direction) => swipe(direction, id)}
                 />
@@ -112,7 +132,17 @@ export function DeckScreen() {
         </div>
 
         <div className="flex items-center justify-between gap-2 pt-4" aria-label="Swipe actions">
-          <ActionButton label="Unsubscribe" keyLabel="←" tone="text-cancel" disabled={!topId} onClick={() => swipe('left')} />
+          <ActionButton
+            label={
+              topId && senders[topId]!.status === 'repeat_offender'
+                ? STEP_SHORT_LABEL[nextEscalation(senders[topId]!, people)]
+                : 'Unsubscribe'
+            }
+            keyLabel="←"
+            tone="text-cancel"
+            disabled={!topId}
+            onClick={() => swipe('left')}
+          />
           <ActionButton label="Later" keyLabel="↑" tone="text-ochre" disabled={!topId} onClick={() => swipe('up')} />
           <ActionButton label="Keep" keyLabel="→" tone="text-post" disabled={!topId} onClick={() => swipe('right')} />
         </div>

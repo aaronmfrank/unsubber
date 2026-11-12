@@ -19,6 +19,11 @@ export function initialWindow(now = new Date()): ScanWindow {
   return { after: formatGmailDate(addDays(now, -INITIAL_WINDOW_DAYS)), before: formatGmailDate(addDays(now, 1)) };
 }
 
+/** From the day before `since` through today, for catching up after the history id expired. */
+export function windowSince(since: Date, now = new Date()): ScanWindow {
+  return { after: formatGmailDate(addDays(since, -1)), before: formatGmailDate(addDays(now, 1)) };
+}
+
 export function windowQuery({ after, before }: ScanWindow): string {
   return `after:${after} before:${before} -in:sent -in:drafts -in:chats`;
 }

@@ -18,6 +18,8 @@ interface DeckState {
   /** Swipes this session, newest last. Switching decks starts a new session. */
   undoStack: UndoEntry[];
   queueCount: number;
+  /** People you email, for labelling a repeat offender's next step. */
+  people: ReadonlySet<string>;
   writeError: string | null;
   load(): Promise<void>;
   selectDeck(deck: DeckId): void;
@@ -31,6 +33,11 @@ interface DeckState {
   setQueueCount(count: number): void;
   /** Moves every saved sender back to Main. Returns how many moved. */
   resetLater(): Promise<number>;
+  /**
+   * Takes in senders changed by a sync. If this deck session hasn't started, the order is rebuilt so
+   * new repeat offenders come first; otherwise they show the next time the deck opens.
+   */
+  absorbSync(changed: Sender[]): void;
 }
 
 /** Which way each card left, read by its exit animation. */
@@ -60,13 +67,14 @@ export const useDeck = create<DeckState>()((set, get) => ({
   index: 0,
   undoStack: [],
   queueCount: 0,
+  people: new Set(),
   writeError: null,
 
   async load() {
     await writes;
-    const [list, queue] = await Promise.all([storage.listSenders(), storage.listQueue()]);
+    const [list, queue, people] = await Promise.all([storage.listSenders(), storage.listQueue(), storage.listPeople()]);
     const senders = Object.fromEntries(list.map((s) => [s.id, s]));
-    set({ loaded: true, senders, order: deckOrder(get().deck, list), index: 0, undoStack: [], queueCount: queue.length });
+    set({ loaded: true, senders, people, order: deckOrder(get().deck, list), index: 0, undoStack: [], queueCount: queue.length });
   },
 
   selectDeck(deck) {
@@ -90,7 +98,10 @@ export const useDeck = create<DeckState>()((set, get) => ({
 
     persist(async () => {
       await storage.upsertSenders([after]);
-      if (direction === 'left') await storage.enqueue({ senderId: id, createdAt: new Date().toISOString() });
+      if (direction === 'left') {
+        const escalation = before.status === 'repeat_offender' ? { escalationStep: before.escalationStep } : {};
+        await storage.enqueue({ senderId: id, createdAt: new Date().toISOString(), ...escalation });
+      }
     });
   },
 
@@ -139,5 +150,12 @@ export const useDeck = create<DeckState>()((set, get) => ({
     get().patchSenders(restored);
     get().selectDeck(get().deck);
     return restored.length;
+  },
+
+  absorbSync(changed) {
+    if (changed.length === 0) return;
+    set((s) => ({ senders: { ...s.senders, ...Object.fromEntries(changed.map((sender) => [sender.id, sender])) } }));
+    const { index, undoStack, deck } = get();
+    if (index === 0 && undoStack.length === 0) get().selectDeck(deck);
   },
 }));

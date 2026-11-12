@@ -1,11 +1,20 @@
 import { AuthExpiredError, type AuthProvider } from '../auth';
 import { backoffDelay, createLimiter, isRateLimitError, isServerError, sleep } from './rateLimit';
-import type { GmailMessage, GmailMessageList, GmailMessageRef, GmailProfile } from './types';
+import type {
+  GmailFilter,
+  GmailHistoryPage,
+  GmailLabel,
+  GmailMessage,
+  GmailMessageList,
+  GmailMessageRef,
+  GmailProfile,
+} from './types';
 
 const BASE_URL = 'https://gmail.googleapis.com/gmail/v1/users/me';
 /** With backoff capped at 64 seconds, this rides out a full per-minute quota window several times over. */
 const MAX_RETRIES = 8;
 const BATCH_MODIFY_LIMIT = 1000;
+const SKIPPED_LABELS = new Set(['SENT', 'DRAFT', 'CHAT', 'SPAM', 'TRASH']);
 
 export class GmailError extends Error {
   override name = 'GmailError';
@@ -162,6 +171,55 @@ export function createGmailClient(auth: AuthProvider, events: GmailClientEvents 
       await this.batchModify(
         refs.map((ref) => ref.id),
         { removeLabelIds: ['INBOX'] },
+      );
+      return refs.length;
+    },
+
+    /**
+     * Ids of messages added since `startHistoryId`, skipping sent, drafts, chats, spam and trash.
+     * Throws a 404 GmailError when the history id has expired (after about a week).
+     */
+    async listAddedMessageIds(startHistoryId: string): Promise<{ ids: string[]; historyId: string }> {
+      const ids = new Set<string>();
+      let pageToken: string | undefined;
+      let historyId = startHistoryId;
+      do {
+        const params = new URLSearchParams({ startHistoryId, historyTypes: 'messageAdded', maxResults: '500' });
+        if (pageToken) params.set('pageToken', pageToken);
+        const page = await request<GmailHistoryPage>(`/history?${params}`);
+        for (const entry of page.history ?? []) {
+          for (const { message } of entry.messagesAdded ?? []) {
+            if (!message.labelIds?.some((label) => SKIPPED_LABELS.has(label))) ids.add(message.id);
+          }
+        }
+        historyId = page.historyId;
+        pageToken = page.nextPageToken;
+      } while (pageToken);
+      return { ids: [...ids], historyId };
+    },
+
+    listLabels: async () => (await request<{ labels?: GmailLabel[] }>('/labels')).labels ?? [],
+
+    createLabel: (name: string) =>
+      request<GmailLabel>('/labels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, labelListVisibility: 'labelShow', messageListVisibility: 'show' }),
+      }),
+
+    createFilter: (filter: Omit<GmailFilter, 'id'>) =>
+      request<GmailFilter>('/settings/filters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(filter),
+      }),
+
+    /** Moves a sender's mail to Spam. Mail already in Spam or Trash is left alone. Returns how many moved. */
+    async reportSpamFrom(address: string): Promise<number> {
+      const refs = await this.listAllMessages(`from:${address} -in:spam -in:trash`);
+      await this.batchModify(
+        refs.map((ref) => ref.id),
+        { addLabelIds: ['SPAM'], removeLabelIds: ['INBOX'] },
       );
       return refs.length;
     },

@@ -74,6 +74,8 @@ export interface MetaValues {
   /** Set while a scan runs, so an interrupted scan resumes instead of starting over. */
   scanInProgress: { window: ScanWindow; historyId: string; startedAt: string };
   peopleScannedAt: string;
+  /** Gmail id of the `Unsubber/Blocked` label, created on first Block. */
+  blockedLabelId: string;
   storagePersisted: boolean;
 }
 

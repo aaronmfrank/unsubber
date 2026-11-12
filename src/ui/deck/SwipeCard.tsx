@@ -34,11 +34,13 @@ interface SwipeCardProps {
   deck: DeckId;
   isTop: boolean;
   expanded: boolean;
+  /** "Unsubscribe", or a repeat offender's next escalation step. */
+  leftLabel: string;
   onToggle(): void;
   onSwipe(direction: SwipeDirection): void;
 }
 
-export function SwipeCard({ sender, deck, isTop, expanded, onToggle, onSwipe }: SwipeCardProps) {
+export function SwipeCard({ sender, deck, isTop, expanded, leftLabel, onToggle, onSwipe }: SwipeCardProps) {
   const reduceMotion = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -123,7 +125,7 @@ export function SwipeCard({ sender, deck, isTop, expanded, onToggle, onSwipe }: 
         <CardBody sender={sender} deck={deck} expanded={expanded} />
 
         <motion.div aria-hidden="true" className="pointer-events-none absolute top-6 right-5" style={{ opacity: unsubOpacity }}>
-          <Stamp>Unsubscribe</Stamp>
+          <Stamp>{leftLabel}</Stamp>
         </motion.div>
         <motion.div aria-hidden="true" className="pointer-events-none absolute top-6 left-5" style={{ opacity: keepOpacity }}>
           <span className="inline-block rounded-md border-2 border-post bg-card px-3 py-1 text-lead font-bold text-post">Keep</span>

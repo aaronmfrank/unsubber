@@ -21,6 +21,24 @@ export interface GmailHeader {
   value: string;
 }
 
+export interface GmailHistoryPage {
+  history?: { id: string; messagesAdded?: { message: GmailMessageRef & { labelIds?: string[] } }[] }[];
+  nextPageToken?: string;
+  historyId: string;
+}
+
+export interface GmailLabel {
+  id: string;
+  name: string;
+  type?: 'system' | 'user';
+}
+
+export interface GmailFilter {
+  id: string;
+  criteria?: { from?: string };
+  action?: { addLabelIds?: string[]; removeLabelIds?: string[] };
+}
+
 export interface GmailMessagePart {
   mimeType?: string;
   headers?: GmailHeader[];

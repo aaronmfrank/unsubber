@@ -1,20 +1,23 @@
 import { useEffect, useRef } from 'react';
-import { useQueue } from '../../state/queue';
+import { useQueue, type QueueGroup } from '../../state/queue';
 import { useSession } from '../../state/session';
-import type { MethodGroup } from '../../unsub/resolve';
 import { Button } from '../Button';
 import { number, senderName } from '../format';
 
-const GROUP_LABEL: Record<MethodGroup, string> = { one_click: 'One-click', email: 'Email', needs_you: 'Needs you' };
+const BREAKDOWN: [QueueGroup, string][] = [
+  ['one_click', 'one-click'],
+  ['email', 'email'],
+  ['block', 'block'],
+  ['report_spam', 'report spam'],
+  ['needs_you', 'need you'],
+];
 
-export function breakdown(groups: MethodGroup[]): string {
-  const count = (g: MethodGroup) => groups.filter((x) => x === g).length;
-  const parts = [
-    count('one_click') && `${number.format(count('one_click'))} one-click`,
-    count('email') && `${number.format(count('email'))} email`,
-    count('needs_you') && `${number.format(count('needs_you'))} need you`,
-  ].filter(Boolean);
-  return parts.join(', ');
+/** "8 one-click, 2 email, 1 block, 2 need you" */
+export function breakdown(groups: QueueGroup[]): string {
+  return BREAKDOWN.map(([group, label]) => [groups.filter((g) => g === group).length, label] as const)
+    .filter(([count]) => count > 0)
+    .map(([count, label]) => `${number.format(count)} ${label}`)
+    .join(', ');
 }
 
 export function ConfirmSheet() {
@@ -53,17 +56,24 @@ export function ConfirmSheet() {
 
         <p className="text-caption text-ink-muted">
           One-click and email unsubscribes go out from here, and every sender's inbox mail is archived. Senders that need a link
-          clicked move to Manual. This can't be undone.
+          clicked move to Manual. Block creates a Gmail filter that skips the inbox; Report spam moves their mail to Spam. This
+          can't be undone.
         </p>
 
         <ul className="-mx-5 min-h-0 flex-1 divide-y divide-rule overflow-y-auto border-y border-rule">
-          {items.map(({ sender, group }) => (
+          {items.map(({ sender, group, label: rowLabel }) => (
             <li key={sender.id} className="flex items-center gap-3 px-5 py-2.5">
               <div className="min-w-0 flex-1">
                 <p className="truncate text-body font-semibold">{senderName(sender)}</p>
                 <p className="truncate text-caption text-ink-muted">{sender.id}</p>
               </div>
-              <span className={`shrink-0 text-caption ${group === 'needs_you' ? 'text-ink-muted' : 'text-post'}`}>{GROUP_LABEL[group]}</span>
+              <span
+                className={`shrink-0 text-caption ${
+                  group === 'needs_you' ? 'text-ink-muted' : group === 'block' || group === 'report_spam' ? 'text-cancel' : 'text-post'
+                }`}
+              >
+                {rowLabel}
+              </span>
               <Button variant="quiet" disabled={running} onClick={() => void removeFromQueue(sender.id)} aria-label={`Remove ${senderName(sender)} from the queue`}>
                 Remove
               </Button>

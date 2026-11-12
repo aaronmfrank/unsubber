@@ -12,6 +12,7 @@ export interface StorageAdapter {
   getSenders(ids: string[]): Promise<Map<string, Sender>>;
   upsertSenders(senders: Sender[]): Promise<void>;
   listSenders(options?: ListSendersOptions): Promise<Sender[]>;
+  listSendersByDomain(domains: string[]): Promise<Sender[]>;
   countSenders(): Promise<number>;
 
   addMessages(messages: MessageIndexRow[]): Promise<void>;

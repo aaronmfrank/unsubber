@@ -32,7 +32,7 @@ export function ManualScreen() {
         <p className="text-body text-ink-muted">
           {manual.length === 0
             ? 'Nothing needs you. Senders that need a link clicked show up here after you unsubscribe.'
-            : 'These senders need you to click their unsubscribe link. Mark each one done once you have, and the grace period starts.'}
+            : 'These senders need you to click their unsubscribe link. Mark each one done once you have, and the grace period starts. Or block or report them.'}
         </p>
       </header>
       <ul className="flex flex-col gap-3">
@@ -46,6 +46,7 @@ export function ManualScreen() {
 
 function ManualRow({ sender }: { sender: Sender }) {
   const markDone = useQueue((s) => s.markDone);
+  const blockOrReport = useQueue((s) => s.blockOrReport);
   const [opened, setOpened] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const links = linksFor(sender);
@@ -81,20 +82,51 @@ function ManualRow({ sender }: { sender: Sender }) {
         </div>
       ) : (
         <p className="text-caption text-ink-muted">
-          No unsubscribe link in the headers or the newest email. Block and Report spam arrive in a later build.
+          No unsubscribe link in the headers or the newest email. Block or report them instead.
         </p>
       )}
 
-      <Button
-        variant={opened ? 'primary' : 'secondary'}
-        disabled={saving}
-        onClick={async () => {
-          setSaving(true);
-          await markDone(sender.id, opened);
-        }}
-      >
-        Mark done
-      </Button>
+      {links.length > 0 && (
+        <Button
+          variant={opened ? 'primary' : 'secondary'}
+          disabled={saving}
+          onClick={async () => {
+            setSaving(true);
+            await markDone(sender.id, opened);
+          }}
+        >
+          Mark done
+        </Button>
+      )}
+
+      <div className="flex gap-2">
+        <Button
+          variant="secondary"
+          className="flex-1 text-cancel"
+          disabled={saving}
+          onClick={async () => {
+            if (!window.confirm(`Block ${sender.id}? Unsubber creates a Gmail filter so their mail skips the inbox and gets the Unsubber/Blocked label.`)) return;
+            setSaving(true);
+            await blockOrReport(sender.id, 'block');
+            setSaving(false);
+          }}
+        >
+          Block
+        </Button>
+        <Button
+          variant="secondary"
+          className="flex-1 text-cancel"
+          disabled={saving}
+          onClick={async () => {
+            if (!window.confirm(`Report ${sender.id} as spam? All their mail moves to Spam.`)) return;
+            setSaving(true);
+            await blockOrReport(sender.id, 'report_spam');
+            setSaving(false);
+          }}
+        >
+          Report spam
+        </Button>
+      </div>
     </li>
   );
 }
