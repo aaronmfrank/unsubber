@@ -40,7 +40,7 @@ export function App() {
   );
 }
 
-function UpdateBanner() {
+export function UpdateBanner() {
   const { ready, apply } = useUpdate();
   const committing = useQueue((s) => s.running);
   if (!ready) return null;
