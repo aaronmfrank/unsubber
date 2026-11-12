@@ -1,6 +1,6 @@
 # Unsubber — Design Brief
 
-For design exploration in Claude Design, Figma Make or any other tool. Attach this file plus the screenshots in `docs/design/screenshots/`. Built against version 0.7.1: milestone 7 plus the 2026-11-12 design handoff, "soft paper, lime on ink". The handoff and its implementation notes are in `screenshots/2026-11-12-unsubber-design-handoff/`.
+For design exploration in Claude Design, Figma Make or any other tool. Attach this file plus the screenshots in `docs/design/screenshots/`. Built against version 0.8.0: every milestone (sudden death was dropped), on the 2026-11-12 design handoff, "soft paper, lime on ink". The handoff and its implementation notes are in `screenshots/2026-11-12-unsubber-design-handoff/`.
 
 ## How to use this
 
@@ -121,10 +121,13 @@ Screenshots are named `NN-name-light.png` / `NN-name-dark.png`.
 | 05d | Deck while older mail loads | Background loading after the quick 30-day first scan | Status chip above the counter. Not on the boards. |
 | 06–08 | Deck: dragging left / right / up | Direction feedback | Stamp and lit circle; Keep and Later labels. |
 | 09 | Deck: preview | Peek before deciding | Expanded card. |
+| 09b | Deck: dragging down | Filter swipe | Ink "Filter" label. |
+| 09c | Filter sheet | Skip the inbox, Mark as read, Apply a label | Built from tokens. |
 | 10 | Deck: repeat offender | Escalation | Stamp, red detail line, next-step hint and button label. |
 | 11 | Deck: Re-review | Revisit keeps | Adds "N emails since you kept it". |
 | 12 | Deck: empty | Main cleared | Dashed placeholder with a next-step line. |
 | 13–14 | Confirm sheet, idle and running | The only place real actions happen | Must feel deliberate, not scary. |
+| 14b | Confirm sheet with a filter | Mixed queue | "Unsubscribe from 3, filter 1". |
 | 15–16 | Toast: summary and error | Result of a commit or sync | |
 | 17 | Manual queue | Senders needing a click | |
 | 18 | Settings | Mail, Decks, Move to another device, About, Sign-in checks, This device | Partly developer-facing for now. |
@@ -157,17 +160,22 @@ History answers "did it work?". It's where you check that unsubscribes stuck, se
   - Would a summary at the top tell the story better? For example "42 unsubscribed, 39 quiet, 3 came back", or a success rate.
   - Desktop could use a list-detail layout, with the list on the left and the timeline on the right.
 
-### Screens still to design
+### Filter swipe (built in milestone 8 from tokens, not designed)
 
-- **Filter sheet (milestone 8).** The down swipe opens a sheet to filter a sender instead of unsubscribing: Skip the inbox, Mark as read, Apply label. It remembers the last choice. The drag-down overlay needs a fourth label and color ("Filter").
-- **Sudden death (deferred).** A toggle that fires each unsubscribe three seconds after the swipe, with an undo toast and a page tint so the mode is unmistakable.
+A down swipe keeps the sender but files their mail out of the way with a Gmail filter.
+
+- **Ways in:** a down drag (an ink "Filter" label fades in), the Down arrow, or a **Filter** chip (↓ Filter) at the right of the card's bottom row.
+- **Filter sheet:** a bottom sheet with title "Filter {name}", the address, a short explainer, three toggle rows on paper (Skip the inbox, Mark as read, Apply a label, with a lime check circle when on), a label field, and a primary **Queue filter** button.
+- **Queue and commit:** filters join the review queue. The review button reads "Review N queued", the confirm sheet title follows the mix ("Unsubscribe from 3, filter 1"), rows read "Filter: skip inbox, read, label", and the toast says "Filtered N."
+- **History:** a Filtered chip and badge, the row "Filtered on Nov 12: skips the inbox, marked as read, labeled …", and **Remove filter** in the expanded row.
+- **Open questions for design:** does Filter deserve a role color, or is ink right? Is a chip on the card the right non-gesture route, or should the action row change? Could the sheet offer presets (Receipts, Social, Newsletters)?
 
 ## Known issues and open questions
 
 Starting points, not decisions. The 2026-11-12 handoff resolved the old palette, contrast, blue-overload, queue-button and icon issues.
 
 1. **`ctl` on `paper` is 2.8:1 in light.** The Undo button and History search sit straight on paper. A light `ctl` around `#828B9B` passes on both surfaces.
-2. **Built from tokens, never designed:** the Keep and Later drag labels, the desktop rail and layouts, the short-phone deck, the open preview, Manual, Settings, scan, sign-in, toasts and banners. These need a design review pass.
+2. **Built from tokens, never designed:** the filter swipe (chip, overlay, sheet, Filtered History row), the Keep and Later drag labels, the desktop rail and layouts, the short-phone deck, the open preview, Manual, Settings, scan, sign-in, toasts and banners. These need a design review pass.
 3. **The stamp art round wasn't done.** The stamp only changed color and gained a true double rule.
 4. **The review screen** is the confirm sheet. The handoff says the review screen isn't designed yet, but the queue list with the slide control on ConfirmV2 covers it.
 5. **Desktop is still a stretched phone.** There's room for a queue sidebar, a keyboard legend or the preview beside the card.
@@ -182,7 +190,7 @@ Pick one per round.
 - **B. Stamp art direction.** Ink texture, double rule, postmark circle. It must work at 22–28px caps on a 358px card and as the app icon's empty stamp.
 - **C. Desktop layout.** Use the width without losing the one-card focus.
 - **D. History, round two.** A success summary, a "worked" state for quiet senders, and a compact escalation chain.
-- **E. New screens.** The filter sheet (milestone 8), then sudden death if it comes back.
+- **E. Filter swipe.** Design the filter sheet, its chip and overlay, and the Filtered History row (09b, 09c, 14b, 19).
 
 ## Handoff format
 

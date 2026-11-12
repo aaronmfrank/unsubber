@@ -26,8 +26,8 @@ function useOverlayOpacity(x: MotionValue<number>, y: MotionValue<number>, direc
   return useTransform([x, y], ([dx = 0, dy = 0]: number[]) => {
     if (dragDirection(dx, dy) !== direction) return 0;
     const { w, h } = size();
-    const distance = direction === 'up' ? -dy : Math.abs(dx);
-    return clamp01(distance / (COMMIT_FRACTION * (direction === 'up' ? h : w)));
+    const vertical = direction === 'up' || direction === 'down';
+    return clamp01(Math.abs(vertical ? dy : dx) / (COMMIT_FRACTION * (vertical ? h : w)));
   });
 }
 
@@ -39,12 +39,14 @@ interface SwipeCardProps {
   /** "Unsubscribe", or a repeat offender's next escalation step. */
   leftLabel: string;
   onToggle(): void;
-  onSwipe(direction: SwipeDirection): void;
+  onSwipe(direction: Exclude<SwipeDirection, 'down'>): void;
+  /** A drag down past the threshold asks for the filter sheet; the card leaves only once a filter is queued. */
+  onFilterRequest(): void;
   /** Which way the card leans far enough to light up an action button, or null. */
   onLean?(direction: SwipeDirection | null): void;
 }
 
-export function SwipeCard({ sender, deck, isTop, expanded, leftLabel, onToggle, onSwipe, onLean }: SwipeCardProps) {
+export function SwipeCard({ sender, deck, isTop, expanded, leftLabel, onToggle, onSwipe, onFilterRequest, onLean }: SwipeCardProps) {
   const reduceMotion = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -58,9 +60,10 @@ export function SwipeCard({ sender, deck, isTop, expanded, leftLabel, onToggle, 
   const unsubOpacity = useOverlayOpacity(x, y, 'left', size);
   const keepOpacity = useOverlayOpacity(x, y, 'right', size);
   const laterOpacity = useOverlayOpacity(x, y, 'up', size);
+  const filterOpacity = useOverlayOpacity(x, y, 'down', size);
 
   const reportLean = () => {
-    const progress = { left: unsubOpacity.get(), right: keepOpacity.get(), up: laterOpacity.get() };
+    const progress = { left: unsubOpacity.get(), right: keepOpacity.get(), up: laterOpacity.get(), down: filterOpacity.get() };
     const next = (Object.keys(progress) as SwipeDirection[]).find((d) => progress[d] >= ARM_PROGRESS) ?? null;
     if (next !== lean.current) {
       lean.current = next;
@@ -79,12 +82,14 @@ export function SwipeCard({ sender, deck, isTop, expanded, leftLabel, onToggle, 
     const commit =
       (direction === 'left' && past(-offset.x, w, -velocity.x)) ||
       (direction === 'right' && past(offset.x, w, velocity.x)) ||
-      (direction === 'up' && past(-offset.y, h, -velocity.y));
+      (direction === 'up' && past(-offset.y, h, -velocity.y)) ||
+      (direction === 'down' && past(offset.y, h, velocity.y));
 
-    if (commit) {
+    if (commit && direction !== 'down') {
       onSwipe(direction);
       return;
     }
+    if (commit) onFilterRequest();
     if (reduceMotion) {
       x.set(0);
       y.set(0);
@@ -105,6 +110,7 @@ export function SwipeCard({ sender, deck, isTop, expanded, leftLabel, onToggle, 
       const away = window.innerWidth / 2 + size().w;
       if (direction === 'left') return { x: -away, rotate: -18, zIndex: 3, transition };
       if (direction === 'right') return { x: away, rotate: 18, zIndex: 3, transition };
+      if (direction === 'down') return { y: window.innerHeight, opacity: 0, zIndex: 3, transition };
       return { y: -(window.innerHeight + size().h), zIndex: 3, transition };
     },
   };
@@ -159,17 +165,20 @@ export function SwipeCard({ sender, deck, isTop, expanded, leftLabel, onToggle, 
         <motion.div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-20 flex justify-center" style={{ opacity: laterOpacity }}>
           <ActionLabel tone="later">Later</ActionLabel>
         </motion.div>
+        <motion.div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-14 flex justify-center" style={{ opacity: filterOpacity }}>
+          <ActionLabel tone="filter">Filter</ActionLabel>
+        </motion.div>
       </motion.div>
     </motion.div>
   );
 }
 
 /** Keep and Later echo the stamp's shape in their own color, but stay sentence case and clean-edged: the stamp is the loud one. */
-function ActionLabel({ tone, children }: { tone: 'keep' | 'later'; children: string }) {
+function ActionLabel({ tone, children }: { tone: 'keep' | 'later' | 'filter'; children: string }) {
   return (
     <span
       className={`inline-block rotate-6 rounded-md border-4 border-double bg-card px-3.5 py-1.5 text-[28px] leading-8 font-extrabold tracking-[0.02em] whitespace-nowrap ${
-        tone === 'keep' ? 'border-keep text-keep' : 'rotate-0 border-later text-later'
+        tone === 'keep' ? 'border-keep text-keep' : tone === 'later' ? 'rotate-0 border-later text-later' : 'rotate-0 border-ink text-ink'
       }`}
       style={{ fontStretch: '125%', fontVariationSettings: "'wdth' 125" }}
     >

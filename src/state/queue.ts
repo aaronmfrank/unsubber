@@ -2,16 +2,18 @@ import { create } from 'zustand';
 import { AuthExpiredError } from '../auth';
 import { GmailError } from '../gmail/client';
 import { storage, type Sender } from '../storage';
+import type { FilterActions } from '../storage/types';
 import { commitQueue, markManualDone, type CommitSummary } from '../unsub/commit';
 import { nextEscalation, STEP_LABEL } from '../unsub/escalation';
 import { blockOrReportNow, browserExecutor } from '../unsub/executor';
+import { removeFilter } from '../unsub/filter';
 import { methodGroup, resolveMethods } from '../unsub/resolve';
 import { flushDeckWrites, useDeck } from './deck';
 import { gmail, useSession } from './session';
 import { useToast, type Toast } from './toast';
 
 /** How the confirm sheet counts a sender. Repeat offenders count by their escalation step. */
-export type QueueGroup = 'one_click' | 'email' | 'needs_you' | 'block' | 'report_spam';
+export type QueueGroup = 'one_click' | 'email' | 'needs_you' | 'block' | 'report_spam' | 'filter';
 
 export interface QueuedSender {
   sender: Sender;
@@ -32,6 +34,8 @@ interface QueueState {
   commit(): Promise<void>;
   markDone(senderId: string, openedLink: string | null): Promise<void>;
   blockOrReport(senderId: string, action: 'block' | 'report_spam'): Promise<void>;
+  /** From History: deletes a sender's Gmail filter and keeps them. */
+  removeFilter(senderId: string): Promise<void>;
 }
 
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
@@ -42,9 +46,16 @@ const GROUP_LABEL: Record<QueueGroup, string> = {
   needs_you: 'Needs you',
   block: 'Block',
   report_spam: 'Report spam',
+  filter: 'Filter',
 };
 
-function classify(sender: Sender, people: ReadonlySet<string>): QueuedSender {
+/** "Filter: skip inbox, read, label" for a confirm-sheet row. */
+function filterLabel({ skipInbox, markRead, label }: FilterActions): string {
+  return `Filter: ${[skipInbox && 'skip inbox', markRead && 'read', label && 'label'].filter(Boolean).join(', ')}`;
+}
+
+function classify(sender: Sender, people: ReadonlySet<string>, filter?: FilterActions): QueuedSender {
+  if (filter) return { sender, group: 'filter', label: filterLabel(filter) };
   if (sender.prevStatus === 'repeat_offender') {
     const step = nextEscalation(sender, people);
     const group: QueueGroup =
@@ -69,8 +80,8 @@ function summaryToast(summary: CommitSummary): Toast {
   }
   if (summary.unsubscribed > 0) parts.push(`Unsubscribed from ${summary.unsubscribed}.`);
   if (summary.blocked > 0) parts.push(`Blocked ${summary.blocked}.`);
-  if (summary.failed > 0)
-    parts.push(`${summary.failed} ${plural(summary.failed, 'escalation', 'escalations')} failed and ${plural(summary.failed, 'is', 'are')} back in Main.`);
+  if (summary.filtered > 0) parts.push(`Filtered ${summary.filtered}.`);
+  if (summary.failed > 0) parts.push(`${summary.failed} failed and ${plural(summary.failed, 'is', 'are')} back in the deck.`);
   if (summary.archiveFailed > 0)
     parts.push(`Couldn't archive mail from ${summary.archiveFailed} ${plural(summary.archiveFailed, 'sender', 'senders')}.`);
   return { message: parts.join(' '), needYou: summary.manual, tone: summary.stoppedBy ? 'error' : 'ok' };
@@ -93,9 +104,9 @@ export const useQueue = create<QueueState>()((set, get) => ({
     const senders = await storage.getSenders(queue.map((item) => item.senderId));
     const people = await peopleWithSelf();
     const items = queue
-      .map((item) => senders.get(item.senderId))
-      .filter((s): s is Sender => s?.status === 'queued')
-      .map((sender) => classify(sender, people));
+      .map((item) => ({ item, sender: senders.get(item.senderId) }))
+      .filter((entry): entry is { item: (typeof queue)[number]; sender: Sender } => entry.sender?.status === 'queued')
+      .map(({ item, sender }) => classify(sender, people, item.filter));
     set({ sheetOpen: true, items, progress: null });
   },
 
@@ -112,7 +123,7 @@ export const useQueue = create<QueueState>()((set, get) => ({
     const items = get().items.filter((i) => i.sender.id !== senderId);
     set({ items, sheetOpen: items.length > 0 });
     useDeck.getState().patchSenders([restored]);
-    useDeck.getState().setQueueCount(items.length);
+    useDeck.getState().setQueueCount(items.length, items.filter((i) => i.group === 'filter').length);
   },
 
   async commit() {
@@ -135,6 +146,7 @@ export const useQueue = create<QueueState>()((set, get) => ({
         unsubscribed: 0,
         manual: 0,
         blocked: 0,
+        filtered: 0,
         failed: 0,
         archiveFailed: 0,
         stoppedBy: error instanceof Error ? error : new Error(String(error)),
@@ -142,7 +154,8 @@ export const useQueue = create<QueueState>()((set, get) => ({
       };
     }
 
-    useDeck.getState().setQueueCount((await storage.listQueue()).length);
+    const left = await storage.listQueue();
+    useDeck.getState().setQueueCount(left.length, left.filter((item) => item.filter).length);
     set({ running: false, sheetOpen: false, items: [], progress: null });
     useToast.getState().show(summaryToast(summary));
   },
@@ -152,6 +165,21 @@ export const useQueue = create<QueueState>()((set, get) => ({
     if (!sender || sender.status !== 'manual') return;
     const updated = await markManualDone(sender, openedLink, { storage });
     useDeck.getState().patchSenders([updated]);
+  },
+
+  async removeFilter(senderId) {
+    const sender = useDeck.getState().senders[senderId];
+    if (!sender || sender.status !== 'filtered') return;
+    try {
+      const updated = await removeFilter(sender, { gmail, storage });
+      useDeck.getState().patchSenders([updated]);
+      useToast.getState().show({ message: `Removed the filter for ${sender.id}. New mail lands in the inbox again.`, tone: 'ok' });
+    } catch (error) {
+      useToast.getState().show({
+        message: `Couldn't remove the filter: ${errorText(error instanceof Error ? error : new Error(String(error)))} Try again.`,
+        tone: 'error',
+      });
+    }
   },
 
   async blockOrReport(senderId, action) {

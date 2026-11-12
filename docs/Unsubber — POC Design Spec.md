@@ -25,7 +25,7 @@ In the POC:
 - Google sign-in in the browser, with Aaron's Gmail added as a test user on the OAuth consent screen.
 - A 90-day scan, plus on-demand scans of older 90-day windows.
 - Three-way swipe by touch and by arrow keys.
-- Queued unsubscribes with a commit step. A sudden death mode that fires each one after a 3-second undo is deferred and may be dropped.
+- Queued unsubscribes and filters with a commit step. (A sudden death mode was considered and dropped on Nov 12.)
 - A manual queue for senders that can't be unsubscribed automatically, with block and report-spam actions.
 - Repeat offender detection and escalation.
 - PWA install to the iPhone home screen.
@@ -47,7 +47,7 @@ The unit of everything is a sender, keyed by lowercased from-address. Every card
 - **Sender:** one from-address, such as `deals@brand.com`. Two addresses from the same brand are two senders.
 - **Card:** the swipeable view of one sender.
 - **Deck:** an ordered, filtered list of cards. There are three: Main, Saved for later, and Re-review keeps.
-- **Unsubscribe queue:** left swipes waiting for the commit step. Empty in sudden death mode.
+- **Unsubscribe queue:** left and down swipes waiting for the commit step.
 - **Manual queue:** senders that need a human to click a link, plus block and report-spam actions.
 
 ### Sender record
@@ -76,7 +76,7 @@ The unit of everything is a sender, keyed by lowercased from-address. Every card
 
 &#91;embedded content: sender lifecycle · 8 statuses\]
 
-Saved and Kept senders follow the same swipes as New when they come up in their decks. In sudden death, Queued lasts 3 seconds. Escalation steps 4 and 5 also pass through the queue before the sender becomes Blocked.
+Saved and Kept senders follow the same swipes as New when they come up in their decks. Escalation steps 4 and 5 also pass through the queue before the sender becomes Blocked. A committed filter swipe makes the sender Filtered; Remove filter in History makes them Kept.
 
 ### Attempt record
 
@@ -154,7 +154,7 @@ Left unsubscribes, right keeps, up saves for later. Arrow keys trigger the same 
 
 | Gesture | Key | Action | Overlay label |
 | --- | --- | --- | --- |
-| Swipe left | Left arrow | Unsubscribe: add to queue, or start the 3-second timer in sudden death | Unsubscribe |
+| Swipe left | Left arrow | Unsubscribe: add to queue | Unsubscribe |
 | Swipe right | Right arrow | Keep: status `kept`, set `keptAt` and `countAtKeep` | Keep |
 | Swipe up | Up arrow | Save for later: status `saved` | Later |
 | Tap card | Space | Expand preview of the newest email |  |
@@ -184,9 +184,9 @@ Swiping in Saved for later or Re-review keeps uses the same three actions. Keepi
 
 ### Undo
 
-In queue mode, undo pops a stack of swipes and restores each sender's `prevStatus`, back to the start of the session. A session is one visit to a deck: switching tabs starts a new one, and the card order is frozen for the session so cards never jump. Holding an arrow key swipes one card, not a run. Committed actions cannot be undone. In sudden death, undo cancels any unsubscribe still inside its 3-second window.
+In queue mode, undo pops a stack of swipes and restores each sender's `prevStatus`, back to the start of the session. A session is one visit to a deck: switching tabs starts a new one, and the card order is frozen for the session so cards never jump. Holding an arrow key swipes one card, not a run. Committed actions cannot be undone.
 
-### Filter swipe (planned, milestone 8)
+### Filter swipe (milestone 8)
 
 Many senders are worth keeping but don't need to sit in the inbox, such as receipts, social notifications and loyalty programs. Down, the unused direction, sets up a Gmail filter for the sender instead of unsubscribing.
 
@@ -197,12 +197,21 @@ Many senders are worth keeping but don't need to sit in the inbox, such as recei
 - **Filter sheet:** pick one or more of Skip the inbox (archive), Mark as read, and Apply label. Apply label defaults to `Unsubber/<domain>`. The last choice is remembered as the default for the next sheet, so a run of similar senders takes one tap each.
 - **Execution:** `users.settings.filters.create` with criteria `{ from: <address> }` and the chosen actions: remove `INBOX`, remove `UNREAD`, add the label. Then apply the same change to the sender's existing inbox mail with `messages.batchModify`. It uses the `gmail.settings.basic` scope already requested for Block.
 - **Data model:** a new sender status `filtered`, plus a `filterId` and the chosen actions on the sender record so History can show and remove the filter. Attempt method `filter_archive`. Filtered senders leave the Main deck, aren't checked for repeat offenses, and can be reopened from History.
-- **Queue and undo:** filters queue and commit like unsubscribes, with the confirm sheet counting them separately, such as "8 unsubscribe, 3 filter". Undo restores `prevStatus` before commit. In sudden death, filters fire after the same 3-second undo window.
+- **Queue and undo:** filters queue and commit like unsubscribes. The confirm sheet counts them separately ("2 one-click, 1 need you, 1 filter"), and its title and slide follow the mix ("Unsubscribe from 3, filter 1", "Filter 3"). Undo restores `prevStatus` before commit.
+
+Build notes (milestone 8):
+
+- **Ways in:** a down drag past 30%, the Down arrow, or the **Filter** chip on the card's bottom row. The chip is the non-gesture route, because the boards' four-button action row has no room for a fifth. A down drag opens the sheet and springs back; the card leaves only once a filter is queued.
+- **Sheet:** Skip the inbox, Mark as read, and Apply a label (default `Unsubber/<domain>`), as toggle rows. At least one must be on. The last choices are remembered on this device; the label is per sender. Built from tokens, flagged for design review.
+- **Scope:** one filter per from-address. Domain-wide (`from:@brand.com`) and `List-Id`-wide filters are left out of the POC.
+- **Commit:** labels are created parent first (`Unsubber`, then `Unsubber/brand.com`), then the filter, then the same label change goes to the sender's `in:inbox` mail. An identical existing filter counts as success. A failed filter returns the sender to `prevStatus` with a failed `filter_archive` attempt. The toast says "Filtered N."
+- **Data:** status `filtered` and `sender.filter = { id, actions, at }`; queue items carry `filter`.
+- **History:** a Filtered chip and a row reading "Filtered on Nov 12: skips the inbox, marked as read, labeled …". The expanded row has **Remove filter**, which deletes the Gmail filter (a missing filter counts as deleted) and makes the sender Kept. Mail already moved stays where it is.
 - **Touch conflict:** a downward drag on iPhone can trigger page scroll or pull-to-refresh. The card needs `touch-action: none` and `overscroll-behavior: none` on the deck, checked on a home-screen install.
 
 ## Unsubscribe execution
 
-By default a left swipe only queues the sender; the unsubscribe runs when Aaron confirms the queue. Sudden death mode skips the queue and fires each one 3 seconds after the swipe.
+A left swipe only queues the sender; the unsubscribe runs when Aaron confirms the queue.
 
 ### Method resolution
 
@@ -227,12 +236,6 @@ Put parsing and resolution in pure functions with unit tests. Cover multiple URI
 - If one-click fails (network error or timeout), try email next. If email fails, route the sender to the manual queue. A sender whose only mailto goes to someone in the people-I-talk-to set also goes to manual, after a body-link search.
 - An expired sign-in or a Gmail rate limit stops the whole run. Senders not reached stay queued, and the toast says how many.
 - Save each sender's new status before archiving, so a failed archive never causes a second unsubscribe on retry. Archive failures are counted in the toast.
-
-### Sudden death mode
-
-- A toggle in the deck header. When on, the deck switches to the sudden death color treatment so the mode is never ambiguous.
-- Each left swipe starts its own 3-second timer and shows an undo toast. If several timers are running, the toast shows the newest sender and a count, such as "Unsubscribing from Brand X and 2 more".
-- Undo or Z cancels every pending timer. When a timer ends, that sender runs through the same executor as queue mode, including archive.
 
 ### Manual queue
 
@@ -294,11 +297,11 @@ Seven screens, one-column on phone, built around the card stack. The visual idea
 
 1. **Sign in.** One Sign in with Google button. One line on what the app reads, and that data stays on this device.
 2. **Scan progress.** Messages scanned out of total, senders found. The deck opens when the scan finishes.
-3. **Deck.** Tabs for Main, Later and Re-review keeps. Card stack, position counter, queue badge, undo, sudden death toggle.
+3. **Deck.** Tabs for Main, Later and Re-review keeps. Card stack, position counter, round actions with undo, review button, Check mail.
 4. **Confirm sheet.** The queue broken down by method, with an Unsubscribe from 12 button.
 5. **Manual queue.** Rows with Open link, Mark done, Block and Report spam.
 6. **History.** Every unsubscribed and blocked sender, with status, attempts and returns.
-7. **Settings.** About this build, Scan older mail, sudden death default, Reset Later (moves every saved sender back to Main), export and import JSON, clear all data, sign out.
+7. **Settings.** About this build, Scan older mail, Appearance, Reset Later (moves every saved sender back to Main), export and import JSON, clear all data, sign out.
 
 Navigation is a bottom tab bar on phone: Deck, Manual (with count), History, Settings. At 900px and wider it becomes a left rail, and the card stays centered at 400px max.
 
@@ -338,7 +341,6 @@ Navigation is a bottom tab bar on phone: Deck, Manual (with count), History, Set
 - **Type:** Archivo variable, self-hosted. Titles 28/34 bold; scale 12, 13, 15, 16, 17, 28.
 - **Shape:** card radius 28, list cards 24, sheet 32, every control a pill. No shadow at rest; a lift while dragging.
 - **Case:** sentence case everywhere. The stamp is the only all-caps text.
-- **Sudden death (deferred):** when built, use an `unsub` tint on `paper` and a lime-on-ink toggle.
 - **Motion:** swipes follow the finger, tilting around the card's bottom edge, and throw off-screen. With `prefers-reduced-motion`, there is no tilt or spring and swipes become 150ms fades.
 - **Accessibility:** a visible ink focus ring, every action reachable by keyboard, color never the only signal (every action has an icon and a word), and all text pairings at 4.5:1 or better.
 
@@ -454,7 +456,7 @@ It is unverified how the GIS sign-in popup behaves inside an iOS home-screen web
 
 ## Build plan
 
-Eight milestones, built in the order listed (sudden death, milestone 5, is deferred to the end). Cursor should not start a milestone until the previous one's done-when checks pass on desktop Chrome and on an iPhone home-screen install.
+Seven milestones were built (1–4 and 6–8); milestone 5, sudden death, was dropped. Cursor should not start a milestone until the previous one's done-when checks pass on desktop Chrome and on an iPhone home-screen install.
 
 1. **Skeleton and sign-in.** Vite, React, TypeScript, PWA and Tailwind scaffold, deployed to Pages by Actions. Sign in and show the signed-in Gmail address.
    - Done when: sign-in works on desktop and from the iPhone home-screen icon, and a 401 triggers a silent token refresh.
@@ -470,8 +472,7 @@ Eight milestones, built in the order listed (sudden death, milestone 5, is defer
    - Done when: an export from desktop imported on iPhone reproduces the same decks and history.
 8. **Filter swipe.** Down swipe and arrow key, filter sheet, filter creation plus a batch change to existing mail, `filtered` status, History entry with Remove filter. Builds on the archive code from milestone 4 and the filter and label code from Block in milestone 6, so it can move up to directly after milestone 6 if the Main deck needs it sooner.
    - Done when: a down swipe on a test sender creates the Gmail filter, archives or marks read its existing inbox mail, and new mail from that sender skips the inbox.
-5. **Sudden death (deferred, may be dropped).** Toggle, color treatment, per-swipe 3-second timers, undo toast. Moved to the end on Nov 11: the queue and confirm sheet cover the need for now. Keeps its number so milestone references stay stable.
-   - Done when: undo inside 3 seconds sends nothing, and a swipe left alone fires exactly once.
+5. **Sudden death: dropped Nov 12.** The queue and the slide-to-confirm sheet cover the need. Milestone numbers stay as they are.
 
 ## Phase 2 and open items
 
@@ -492,4 +493,4 @@ Phase 2 starts when the POC is in daily use. The path ends at TestFlight unless 
 - [ ] Check whether a Gmail filter created through the API can add the `TRASH` label. If it can, Block sends mail to Trash instead of the `Unsubber/Blocked` label.
 - [ ] Decide whether senders that share a domain and `List-Id` should merge into one card. This spec keeps one card per from-address.
 - [x] Verify GIS popup sign-in from the iOS home-screen app (milestone 1). Popup works from the home-screen icon; the redirect fallback is built but not needed so far.
-- [ ] Filter swipe: decide whether one filter per domain (`from:@brand.com`) should be offered alongside one per address, and whether to bulk-filter every sender with the same `List-Id`.
+- [x] Filter swipe scope: one filter per address for the POC. Domain-wide and `List-Id`-wide filters are possible Phase 2 options.

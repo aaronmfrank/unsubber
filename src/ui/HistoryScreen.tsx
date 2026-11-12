@@ -5,28 +5,36 @@ import { storage, type Attempt, type Sender } from '../storage';
 import { attemptDetail, METHOD_LABEL, RESULT_LABEL } from './attemptLabels';
 import { number, senderName, shortDate } from './format';
 import { Search } from './icons';
+import { Button } from './Button';
+import { useQueue } from '../state/queue';
+import { describeFilter } from '../unsub/filter';
 
-type Filter = 'all' | 'unsubscribed' | 'repeat_offender' | 'blocked';
+type Filter = 'all' | 'unsubscribed' | 'repeat_offender' | 'blocked' | 'filtered';
 
 const FILTERS: { id: Filter; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'unsubscribed', label: 'Unsubscribed' },
   { id: 'repeat_offender', label: 'Repeat offenders' },
   { id: 'blocked', label: 'Blocked' },
+  { id: 'filtered', label: 'Filtered' },
 ];
 
 const STATUS_BADGE: Record<Exclude<Filter, 'all'>, { label: string; tone: string }> = {
   unsubscribed: { label: 'Unsubscribed', tone: 'border-ctl text-muted' },
   repeat_offender: { label: 'Repeat offender', tone: 'border-unsub text-unsub' },
   blocked: { label: 'Blocked', tone: 'border-ink text-ink' },
+  filtered: { label: 'Filtered', tone: 'border-ctl text-ink' },
 };
 
 const inHistory = (s: Sender): s is Sender & { status: Exclude<Filter, 'all'> } =>
-  s.status === 'unsubscribed' || s.status === 'repeat_offender' || s.status === 'blocked';
+  s.status === 'unsubscribed' || s.status === 'repeat_offender' || s.status === 'blocked' || s.status === 'filtered';
 
 /** One line on where the sender stands now. */
 function standing(sender: Sender, attempts: Attempt[], now = new Date()): string {
   const emails = (n: number) => `${number.format(n)} ${n === 1 ? 'email' : 'emails'}`;
+  if (sender.status === 'filtered') {
+    return sender.filter ? `Filtered on ${shortDate(sender.filter.at)}: ${describeFilter(sender.filter.actions)}.` : 'Filtered.';
+  }
   if (sender.status === 'blocked') {
     const last = attempts.filter((a) => a.method === 'filter_block' || a.method === 'report_spam').at(-1);
     return last ? `${last.method === 'report_spam' ? 'Reported as spam' : 'Blocked'} on ${shortDate(last.at)}. Tracking stopped.` : 'Blocked. Tracking stopped.';
@@ -73,7 +81,7 @@ export function HistoryScreen() {
   }, [senders, attempts]);
 
   const counts = useMemo(() => {
-    const result: Record<Filter, number> = { all: history.length, unsubscribed: 0, repeat_offender: 0, blocked: 0 };
+    const result: Record<Filter, number> = { all: history.length, unsubscribed: 0, repeat_offender: 0, blocked: 0, filtered: 0 };
     for (const s of history) result[s.status]++;
     return result;
   }, [history]);
@@ -90,14 +98,14 @@ export function HistoryScreen() {
         <p className="text-body text-muted">
           {history.length === 0
             ? 'No unsubscribes yet. Senders you unsubscribe from or block show up here.'
-            : `${number.format(counts.unsubscribed)} unsubscribed, ${number.format(counts.repeat_offender)} repeat ${counts.repeat_offender === 1 ? 'offender' : 'offenders'}, ${number.format(counts.blocked)} blocked.`}
+            : `${number.format(counts.unsubscribed)} unsubscribed, ${number.format(counts.repeat_offender)} repeat ${counts.repeat_offender === 1 ? 'offender' : 'offenders'}, ${number.format(counts.blocked)} blocked${counts.filtered > 0 ? `, ${number.format(counts.filtered)} filtered` : ''}.`}
         </p>
       </header>
 
       {history.length > 0 && (
         <>
           <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Filter history">
-            {FILTERS.map(({ id, label }) => (
+            {FILTERS.filter(({ id }) => id !== 'filtered' || counts.filtered > 0).map(({ id, label }) => (
               <button
                 key={id}
                 aria-pressed={filter === id}
@@ -154,6 +162,7 @@ function HistoryRow({
   onToggle(): void;
 }) {
   const badge = STATUS_BADGE[sender.status];
+  const removeFilter = useQueue((s) => s.removeFilter);
   return (
     <li className="overflow-hidden rounded-history border border-rule bg-card">
       <button onClick={onToggle} aria-expanded={open} className="flex w-full flex-col gap-0.5 px-[18px] py-4 text-left">
@@ -166,7 +175,7 @@ function HistoryRow({
       </button>
 
       {open && (
-        <div className="border-t border-rule bg-paper px-[18px] pt-3.5 pb-4">
+        <div className="flex flex-col gap-3 border-t border-rule bg-paper px-[18px] pt-3.5 pb-4">
           {attempts.length === 0 ? (
             <p className="text-[14px] leading-5 text-muted">No attempts recorded on this device.</p>
           ) : (
@@ -185,6 +194,11 @@ function HistoryRow({
                 );
               })}
             </ol>
+          )}
+          {sender.status === 'filtered' && (
+            <Button variant="secondary" className="self-start" onClick={() => void removeFilter(sender.id)}>
+              Remove filter
+            </Button>
           )}
         </div>
       )}

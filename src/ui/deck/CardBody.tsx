@@ -1,14 +1,17 @@
 import type { Sender } from '../../storage';
 import { useDeck } from '../../state/deck';
 import { messagesSinceKeep, type DeckId } from '../../state/deckLogic';
+import { useFilterSheet } from '../../state/filterSheet';
 import { nextEscalation, STEP_HINT } from '../../unsub/escalation';
 import { cleanSnippet, countLine, methodBadge, number, senderName } from '../format';
+import { ArrowDown } from '../icons';
 import { Stamp } from '../Stamp';
 import { Preview } from './Preview';
 import { useOffenderDetail } from './useOffenderDetail';
 
 export function CardBody({ sender, deck, expanded }: { sender: Sender; deck: DeckId; expanded: boolean }) {
   const people = useDeck((s) => s.people);
+  const openFilter = useFilterSheet((s) => s.open);
   const offenderDetail = useOffenderDetail(sender);
   const offender = sender.status === 'repeat_offender';
   const sinceKeep = messagesSinceKeep(sender);
@@ -48,9 +51,20 @@ export function CardBody({ sender, deck, expanded }: { sender: Sender; deck: Dec
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-2">
         <span className="inline-flex h-8 items-center rounded-full border border-ctl px-3.5 text-caption font-semibold">{methodBadge(sender)}</span>
-        <span className="text-caption text-muted">{expanded ? 'Tap to collapse' : 'Tap for preview'}</span>
+        <span className="min-w-0 flex-1 truncate text-right text-caption text-muted">{expanded ? 'Tap to collapse' : 'Tap for preview'}</span>
+        <button
+          type="button"
+          data-no-toggle
+          onClick={() => openFilter(sender.id)}
+          aria-label={`Filter ${senderName(sender)} instead`}
+          aria-keyshortcuts="ArrowDown"
+          className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full bg-chip px-3 text-caption font-semibold"
+        >
+          <ArrowDown size={14} />
+          Filter
+        </button>
       </div>
     </div>
   );

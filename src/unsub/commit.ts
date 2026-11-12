@@ -1,6 +1,7 @@
 import { mapPool } from '../scan/pool';
 import type { Sender } from '../storage/types';
 import { newAttemptId, runUnsubscribe, type RunDeps, type RunResult } from './executor';
+import { runFilter } from './filter';
 
 const CONCURRENCY = 4;
 
@@ -8,6 +9,7 @@ export interface CommitSummary {
   unsubscribed: number;
   manual: number;
   blocked: number;
+  filtered: number;
   /** Escalations that failed; those senders are back in Main, stamped. */
   failed: number;
   archiveFailed: number;
@@ -21,10 +23,11 @@ export interface CommitOptions {
   onSender?(sender: Sender): void;
 }
 
-/** Runs every queued sender, four at a time. */
+/** Runs every queued sender, four at a time: unsubscribes, escalations and filters. */
 export async function commitQueue(deps: Omit<RunDeps, 'people'>, { onProgress, onSender }: CommitOptions = {}): Promise<CommitSummary> {
   const { storage } = deps;
   const queue = await storage.listQueue();
+  const filters = new Map(queue.filter((item) => item.filter).map((item) => [item.senderId, item.filter!]));
   const senders = [...(await storage.getSenders(queue.map((item) => item.senderId))).values()].filter((s) => s.status === 'queued');
   const people = new Set([...(await storage.listPeople()), deps.selfAddress.toLowerCase()]);
 
@@ -35,7 +38,8 @@ export async function commitQueue(deps: Omit<RunDeps, 'people'>, { onProgress, o
   const results = await mapPool(senders, CONCURRENCY, async (sender): Promise<RunResult | null> => {
     if (stoppedBy) return null;
     try {
-      const result = await runUnsubscribe(sender, { ...deps, people });
+      const filter = filters.get(sender.id);
+      const result = filter ? await runFilter(sender, filter, deps) : await runUnsubscribe(sender, { ...deps, people });
       onSender?.(result.sender);
       return result;
     } catch (error) {
@@ -51,6 +55,7 @@ export async function commitQueue(deps: Omit<RunDeps, 'people'>, { onProgress, o
     unsubscribed: finished.filter((r) => r.outcome === 'unsubscribed').length,
     manual: finished.filter((r) => r.outcome === 'manual').length,
     blocked: finished.filter((r) => r.outcome === 'blocked').length,
+    filtered: finished.filter((r) => r.outcome === 'filtered').length,
     failed: finished.filter((r) => r.outcome === 'failed').length,
     archiveFailed: finished.filter((r) => r.archived === null).length,
     stoppedBy,

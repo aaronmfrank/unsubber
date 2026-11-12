@@ -6,6 +6,7 @@ export const METHOD_LABEL: Record<AttemptMethod, string> = {
   manual_link: 'Link you opened',
   filter_block: 'Block filter',
   report_spam: 'Reported spam',
+  filter_archive: 'Inbox filter',
 };
 
 export const RESULT_LABEL: Record<AttemptResult, string> = {

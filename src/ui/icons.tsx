@@ -40,6 +40,17 @@ export const ArrowUp = (p: IconProps) => (
     <path d="M5 12l7-7 7 7" />
   </Icon>
 );
+export const ArrowDown = (p: IconProps) => (
+  <Icon strokeWidth={2.2} {...p}>
+    <path d="M12 5v14" />
+    <path d="M19 12l-7 7-7-7" />
+  </Icon>
+);
+export const Check = (p: IconProps) => (
+  <Icon strokeWidth={2.6} {...p}>
+    <path d="M5 12.5l4.5 4.5L19 7.5" />
+  </Icon>
+);
 export const Undo = (p: IconProps) => (
   <Icon strokeWidth={2.2} {...p}>
     <path d="M9 14L4 9l5-5" />

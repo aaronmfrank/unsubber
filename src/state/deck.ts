@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { storage, type Sender } from '../storage';
-import { applySwipe, deckOrder, type DeckId, type SwipeDirection } from './deckLogic';
+import type { FilterActions } from '../storage/types';
+import { applySwipe, deckOrder, QUEUES, type DeckId, type SwipeDirection } from './deckLogic';
 
 interface UndoEntry {
   id: string;
@@ -18,19 +19,21 @@ interface DeckState {
   /** Swipes this session, newest last. Switching decks starts a new session. */
   undoStack: UndoEntry[];
   queueCount: number;
+  /** Queued filter swipes, part of `queueCount`. */
+  filterQueueCount: number;
   /** People you email, for labelling a repeat offender's next step. */
   people: ReadonlySet<string>;
   writeError: string | null;
   load(): Promise<void>;
   selectDeck(deck: DeckId): void;
   /** Ignored unless `expectedId` is still the top card, so a late drag release can't swipe the next one. */
-  swipe(direction: SwipeDirection, expectedId?: string): void;
+  swipe(direction: SwipeDirection, expectedId?: string, filter?: FilterActions): void;
   undo(): void;
   /** Takes in senders changed outside a swipe. Their swipes can no longer be undone. */
   patchSenders(updated: Sender[]): void;
   /** Drops these senders' swipes from the undo stack, for a commit that's about to run them. */
   lockSwipes(ids: string[]): void;
-  setQueueCount(count: number): void;
+  setQueueCount(count: number, filters?: number): void;
   /** Moves every saved sender back to Main. Returns how many moved. */
   resetLater(): Promise<number>;
   /**
@@ -68,6 +71,7 @@ export const useDeck = create<DeckState>()((set, get) => ({
   index: 0,
   undoStack: [],
   queueCount: 0,
+  filterQueueCount: 0,
   people: new Set(),
   writeError: null,
 
@@ -75,18 +79,28 @@ export const useDeck = create<DeckState>()((set, get) => ({
     await writes;
     const [list, queue, people] = await Promise.all([storage.listSenders(), storage.listQueue(), storage.listPeople()]);
     const senders = Object.fromEntries(list.map((s) => [s.id, s]));
-    set({ loaded: true, senders, people, order: deckOrder(get().deck, list), index: 0, undoStack: [], queueCount: queue.length });
+    set({
+      loaded: true,
+      senders,
+      people,
+      order: deckOrder(get().deck, list),
+      index: 0,
+      undoStack: [],
+      queueCount: queue.length,
+      filterQueueCount: queue.filter((item) => item.filter).length,
+    });
   },
 
   selectDeck(deck) {
     set({ deck, order: deckOrder(deck, Object.values(get().senders)), index: 0, undoStack: [] });
   },
 
-  swipe(direction, expectedId) {
-    const { order, index, senders, undoStack, queueCount } = get();
+  swipe(direction, expectedId, filter) {
+    const { order, index, senders, undoStack, queueCount, filterQueueCount } = get();
     const id = order[index];
     if (!id || (expectedId !== undefined && expectedId !== id)) return;
     const before = senders[id]!;
+    if (direction === 'down' && !filter) return;
     const after = applySwipe(before, direction, new Date().toISOString());
 
     exitDirections.set(id, direction);
@@ -94,7 +108,8 @@ export const useDeck = create<DeckState>()((set, get) => ({
       senders: { ...senders, [id]: after },
       index: index + 1,
       undoStack: [...undoStack, { id, direction, before }],
-      queueCount: direction === 'left' ? queueCount + 1 : queueCount,
+      queueCount: QUEUES(direction) ? queueCount + 1 : queueCount,
+      filterQueueCount: direction === 'down' ? filterQueueCount + 1 : filterQueueCount,
     });
 
     persist(async () => {
@@ -102,12 +117,14 @@ export const useDeck = create<DeckState>()((set, get) => ({
       if (direction === 'left') {
         const escalation = before.status === 'repeat_offender' ? { escalationStep: before.escalationStep } : {};
         await storage.enqueue({ senderId: id, createdAt: new Date().toISOString(), ...escalation });
+      } else if (direction === 'down') {
+        await storage.enqueue({ senderId: id, createdAt: new Date().toISOString(), filter });
       }
     });
   },
 
   undo() {
-    const { undoStack, senders, index, order, queueCount } = get();
+    const { undoStack, senders, index, order, queueCount, filterQueueCount } = get();
     const entry = undoStack.at(-1);
     if (!entry || order[index - 1] !== entry.id) return;
 
@@ -115,12 +132,13 @@ export const useDeck = create<DeckState>()((set, get) => ({
       senders: { ...senders, [entry.id]: entry.before },
       index: index - 1,
       undoStack: undoStack.slice(0, -1),
-      queueCount: entry.direction === 'left' ? queueCount - 1 : queueCount,
+      queueCount: QUEUES(entry.direction) ? queueCount - 1 : queueCount,
+      filterQueueCount: entry.direction === 'down' ? filterQueueCount - 1 : filterQueueCount,
     });
 
     persist(async () => {
       await storage.upsertSenders([entry.before]);
-      if (entry.direction === 'left') await storage.dequeue(entry.id);
+      if (QUEUES(entry.direction)) await storage.dequeue(entry.id);
     });
   },
 
@@ -137,8 +155,8 @@ export const useDeck = create<DeckState>()((set, get) => ({
     set((s) => ({ undoStack: s.undoStack.filter((entry) => !locked.has(entry.id)) }));
   },
 
-  setQueueCount(count) {
-    set({ queueCount: count });
+  setQueueCount(count, filters = 0) {
+    set({ queueCount: count, filterQueueCount: filters });
   },
 
   async resetLater() {

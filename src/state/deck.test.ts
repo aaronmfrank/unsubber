@@ -90,7 +90,7 @@ describe('deck store', () => {
     expect(state.undoStack).toHaveLength(50);
 
     const stored = await storage.getSenders([...expected.keys()]);
-    const statusFor = { left: 'queued', right: 'kept', up: 'saved' } as const;
+    const statusFor = { left: 'queued', right: 'kept', up: 'saved', down: 'queued' } as const;
     for (const [id, direction] of expected) expect(stored.get(id)?.status).toBe(statusFor[direction]);
 
     const lefts = [...expected.values()].filter((d) => d === 'left').length;
@@ -122,6 +122,25 @@ describe('deck store', () => {
     expect((await storage.getSender(b!))?.keptAt).toBeUndefined();
     expect(await storage.listQueue()).toHaveLength(0);
     expect(useDeck.getState().queueCount).toBe(0);
+  });
+
+  it('queues a filter swipe with its actions, and undo takes it back', async () => {
+    await seed(3);
+    const first = useDeck.getState().order[0]!;
+    useDeck.getState().swipe('down');
+    expect(useDeck.getState().index).toBe(0);
+
+    const actions = { skipInbox: true, markRead: false, label: 'Unsubber/x.com' };
+    useDeck.getState().swipe('down', first, actions);
+    await flushDeckWrites();
+    expect(useDeck.getState()).toMatchObject({ index: 1, queueCount: 1, filterQueueCount: 1 });
+    expect(await storage.listQueue()).toMatchObject([{ senderId: first, filter: actions }]);
+    expect((await storage.getSender(first))?.status).toBe('queued');
+
+    useDeck.getState().undo();
+    await flushDeckWrites();
+    expect(useDeck.getState()).toMatchObject({ index: 0, queueCount: 0, filterQueueCount: 0 });
+    expect(await storage.listQueue()).toEqual([]);
   });
 
   it('moves every Later sender back to Main', async () => {

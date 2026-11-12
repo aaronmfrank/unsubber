@@ -11,7 +11,17 @@ const BREAKDOWN: [QueueGroup, string][] = [
   ['block', 'block'],
   ['report_spam', 'report spam'],
   ['needs_you', 'need you'],
+  ['filter', 'filter'],
 ];
+
+/** "Unsubscribe from 5, filter 3", "Unsubscribe from 8" or "Filter 3". */
+export function commitAction(groups: QueueGroup[]): string {
+  const filters = groups.filter((g) => g === 'filter').length;
+  const unsubs = groups.length - filters;
+  if (filters === 0) return `Unsubscribe from ${number.format(unsubs)}`;
+  if (unsubs === 0) return `Filter ${number.format(filters)}`;
+  return `Unsubscribe from ${number.format(unsubs)}, filter ${number.format(filters)}`;
+}
 
 /** ["5 one-click", "1 email", "2 need you"] */
 export function breakdown(groups: QueueGroup[]): string[] {
@@ -36,8 +46,9 @@ export function ConfirmSheet() {
   }, [sheetOpen, closeSheet]);
 
   if (!sheetOpen) return null;
-  const count = number.format(items.length);
+  const action = commitAction(items.map((i) => i.group));
   const groups = new Set(items.map((i) => i.group));
+  const unsubscribing = [...groups].some((g) => g !== 'filter');
 
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-[rgba(10,14,22,0.55)] p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] min-[900px]:items-center" onClick={closeSheet}>
@@ -52,7 +63,7 @@ export function ConfirmSheet() {
         <header className="flex flex-col gap-2 px-6 pt-[18px] pb-3">
           <div className="flex items-center justify-between gap-3">
             <h2 id="confirm-title" className="text-display font-bold tracking-[-0.01em]">
-              Unsubscribe from {count}
+              {action}
             </h2>
             <button
               ref={closeRef}
@@ -87,7 +98,12 @@ export function ConfirmSheet() {
                 <span className="font-semibold text-ink">Block and report spam</span> filter or move their mail.
               </p>
             )}
-            <p className="font-semibold text-ink">This can't be undone.</p>
+            {groups.has('filter') && (
+              <p>
+                <span className="font-semibold text-ink">Filters</span> file new mail and their inbox mail now. Remove one later in History.
+              </p>
+            )}
+            {unsubscribing && <p className="font-semibold text-ink">Unsubscribes can't be undone.</p>}
           </div>
         </header>
 
@@ -131,8 +147,8 @@ export function ConfirmSheet() {
             </div>
           ) : (
             <SlideToConfirm
-              label={`Slide to unsubscribe from ${count}`}
-              confirmPhrase={`unsubscribe from ${count}`}
+              label={`Slide to ${action.charAt(0).toLowerCase()}${action.slice(1)}`}
+              confirmPhrase={`${action.charAt(0).toLowerCase()}${action.slice(1)}`}
               disabled={!signedIn || items.length === 0}
               onConfirm={() => void commit()}
             />

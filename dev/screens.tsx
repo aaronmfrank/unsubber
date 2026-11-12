@@ -9,6 +9,7 @@ import '../src/index.css';
 import { useUpdate } from '../src/pwa';
 import { useBackfill } from '../src/state/backfill';
 import { useDeck } from '../src/state/deck';
+import { useFilterSheet } from '../src/state/filterSheet';
 import { useNav } from '../src/state/nav';
 import { useOlderScan } from '../src/state/olderScan';
 import { useQueue } from '../src/state/queue';
@@ -90,6 +91,10 @@ const history: Sender[] = [
   { ...offender },
   sender('promo@stubborn.example.com', 'Stubborn Co', 120, 'Final notice', '', oneClick, { status: 'blocked', unsubscribedAt: daysAgo(50), escalationStep: 4, returnCount: 9 }),
   sender('offers@spammy-deals.com', 'Spammy Deals', 64, 'You won!', '', none, { status: 'blocked', escalationStep: 1 }),
+  sender('receipts@squaremart.com', 'Square Receipts', 41, 'Your receipt', '', none, {
+    status: 'filtered',
+    filter: { id: 'f-1', actions: { skipInbox: true, markRead: true, label: 'Unsubber/squaremart.com' }, at: daysAgo(1) },
+  }),
 ];
 
 const historyAttempts = [
@@ -101,6 +106,7 @@ const historyAttempts = [
   { senderId: 'promo@stubborn.example.com', method: 'one_click', at: daysAgo(30), result: 'sent_unconfirmed', detail: 'https://u.stubborn.example.com/1c' },
   { senderId: 'promo@stubborn.example.com', method: 'filter_block', at: daysAgo(6), result: 'sent', detail: 'filter-1' },
   { senderId: 'offers@spammy-deals.com', method: 'report_spam', at: daysAgo(2), result: 'sent', detail: '64 messages moved to Spam' },
+  { senderId: 'receipts@squaremart.com', method: 'filter_archive', at: daysAgo(1), result: 'sent', detail: 'f-1' },
 ] as const;
 
 async function seed(senders: Sender[]) {
@@ -176,6 +182,12 @@ async function setup(): Promise<ReactNode> {
     useOlderScan.setState({ refresh: async () => {} });
   }
   if (screen === 'deck-queued') await queueAll(main.slice(6, 9));
+  if (screen === 'confirm-mixed') {
+    await queueAll(main.slice(0, 3));
+    const receipts = { ...main[6]!, prevStatus: 'new' as const, status: 'queued' as const };
+    await storage.upsertSenders([receipts]);
+    await storage.enqueue({ senderId: receipts.id, createdAt: new Date().toISOString(), filter: { skipInbox: true, markRead: true, label: 'Unsubber/squaremart.com' } });
+  }
   if (screen === 'deck-backfilling' || screen === 'settings-backfilling') {
     useBackfill.setState({ status: 'running', progress: { phase: 'reading', done: 340, total: 910, senders: 212 }, start: async () => {} });
   }
@@ -191,7 +203,8 @@ async function setup(): Promise<ReactNode> {
 
 async function afterMount() {
   await new Promise((r) => setTimeout(r, 300));
-  if (screen === 'confirm' || screen === 'confirm-running') await useQueue.getState().openSheet();
+  if (screen === 'confirm' || screen === 'confirm-running' || screen === 'confirm-mixed') await useQueue.getState().openSheet();
+  if (screen === 'filter-sheet') useFilterSheet.getState().open(main[6]!.id);
   if (screen === 'confirm-running') useQueue.setState({ running: true, progress: { done: 3, total: 7 } });
   if (screen === 'toast') useToast.getState().show({ message: 'Unsubscribed from 10.', needYou: 2, tone: 'ok' });
   if (screen === 'toast-error')

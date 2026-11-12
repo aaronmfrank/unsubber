@@ -2,6 +2,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useEffect, useMemo, useState, type ComponentType } from 'react';
 import { exitDirections, useDeck } from '../../state/deck';
 import { inDeck, type DeckId, type SwipeDirection } from '../../state/deckLogic';
+import { useFilterSheet } from '../../state/filterSheet';
 import { useQueue } from '../../state/queue';
 import { useSync } from '../../state/sync';
 import type { Sender } from '../../storage';
@@ -9,6 +10,7 @@ import { nextEscalation, STEP_LABEL, STEP_SHORT_LABEL } from '../../unsub/escala
 import { BackfillStatus } from '../BackfillStatus';
 import { number } from '../format';
 import { ArrowLeft, ArrowRight, ArrowUp, Refresh, Undo } from '../icons';
+import { FilterSheet } from './FilterSheet';
 import { SwipeCard } from './SwipeCard';
 
 const DECKS: { id: DeckId; label: string }[] = [
@@ -29,7 +31,7 @@ const CARD_HEIGHT = { normal: 384, offender: 430, expanded: 560 } as const;
 const KEY_DIRECTIONS: Record<string, SwipeDirection> = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up' };
 
 export function DeckScreen() {
-  const { loaded, deck, order, index, senders, undoStack, queueCount, writeError, selectDeck, swipe, undo } = useDeck();
+  const { loaded, deck, order, index, senders, undoStack, queueCount, filterQueueCount, writeError, selectDeck, swipe, undo } = useDeck();
   const openSheet = useQueue((s) => s.openSheet);
   const sync = useSync((s) => s.sync);
   const syncing = useSync((s) => s.running);
@@ -57,7 +59,7 @@ export function DeckScreen() {
       if (event.altKey || event.ctrlKey || (event.metaKey && key.toLowerCase() !== 'z')) return;
       const target = event.target as HTMLElement;
       if (target.closest('input, textarea, select, [contenteditable="true"], [role="slider"]')) return;
-      if (useQueue.getState().sheetOpen) return;
+      if (useQueue.getState().sheetOpen || useFilterSheet.getState().senderId) return;
 
       const direction = KEY_DIRECTIONS[key];
       if (direction) {
@@ -66,6 +68,9 @@ export function DeckScreen() {
         if (!event.repeat) useDeck.getState().swipe(direction);
       } else if (key === 'ArrowDown') {
         event.preventDefault();
+        const { order: o, index: i } = useDeck.getState();
+        const current = o[i];
+        if (current && !event.repeat) useFilterSheet.getState().open(current);
       } else if (key === ' ') {
         if (target.closest('button, a')) return;
         event.preventDefault();
@@ -150,6 +155,7 @@ export function DeckScreen() {
                   leftLabel={leftLabelFor(senders[id]!)}
                   onToggle={() => setExpandedId((open) => (open === id ? null : id))}
                   onSwipe={(direction) => swipe(direction, id)}
+                  onFilterRequest={() => useFilterSheet.getState().open(id)}
                   onLean={i === 0 ? setLean : undefined}
                 />
               ))}
@@ -178,10 +184,12 @@ export function DeckScreen() {
             queueCount === 0 ? 'invisible' : ''
           }`}
         >
-          Review {number.format(queueCount)} to unsubscribe
+          {filterQueueCount > 0 ? `Review ${number.format(queueCount)} queued` : `Review ${number.format(queueCount)} to unsubscribe`}
           <ArrowRight size={18} strokeWidth={2.4} />
         </button>
       </div>
+
+      <FilterSheet />
     </div>
   );
 }

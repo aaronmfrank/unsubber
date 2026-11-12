@@ -1,7 +1,11 @@
 import type { Sender, SenderStatus } from '../storage/types';
 
 export type DeckId = 'main' | 'later' | 'rereview';
-export type SwipeDirection = 'left' | 'right' | 'up';
+/** Left unsubscribes, right keeps, up saves for later, down filters. */
+export type SwipeDirection = 'left' | 'right' | 'up' | 'down';
+
+/** Directions that put the sender in the queue for the confirm sheet. */
+export const QUEUES = (direction: SwipeDirection) => direction === 'left' || direction === 'down';
 
 export const DECK_STATUSES: Record<DeckId, readonly SenderStatus[]> = {
   main: ['new', 'repeat_offender'],
@@ -33,10 +37,11 @@ export function deckOrder(deck: DeckId, senders: Iterable<Sender>): string[] {
     .map((s) => s.id);
 }
 
-/** The sender after a swipe. Left only queues; the unsubscribe runs when the queue is committed. */
+/** The sender after a swipe. Left and down only queue; the unsubscribe or filter runs when the queue is committed. */
 export function applySwipe(sender: Sender, direction: SwipeDirection, now: string): Sender {
   switch (direction) {
     case 'left':
+    case 'down':
       return { ...sender, status: 'queued', prevStatus: sender.status };
     case 'right':
       return { ...sender, status: 'kept', keptAt: now, countAtKeep: sender.messageCount };

@@ -9,6 +9,7 @@ const ATTEMPT_LABEL: Record<AttemptMethod, string> = {
   manual_link: 'Unsubscribed by link',
   filter_block: 'Blocked',
   report_spam: 'Reported spam',
+  filter_archive: 'Filtered',
 };
 
 const cache = new Map<string, string>();

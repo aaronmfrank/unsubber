@@ -53,7 +53,7 @@ export interface RunDeps {
   now?: () => Date;
 }
 
-export type RunOutcome = 'unsubscribed' | 'manual' | 'blocked' | 'failed';
+export type RunOutcome = 'unsubscribed' | 'manual' | 'blocked' | 'filtered' | 'failed';
 
 export interface RunResult {
   sender: Sender;

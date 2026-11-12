@@ -218,6 +218,15 @@ export function createGmailClient(auth: AuthProvider, events: GmailClientEvents 
         body: JSON.stringify(filter),
       }),
 
+    /** Deletes a filter. One that's already gone counts as deleted. */
+    async deleteFilter(id: string): Promise<void> {
+      try {
+        await request<void>(`/settings/filters/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      } catch (error) {
+        if (!(error instanceof GmailError && error.status === 404)) throw error;
+      }
+    },
+
     /** Moves a sender's mail to Spam. Mail already in Spam or Trash is left alone. Returns how many moved. */
     async reportSpamFrom(address: string): Promise<number> {
       const refs = await this.listAllMessages(`from:${address} -in:spam -in:trash`);

@@ -1,4 +1,21 @@
-export type SenderStatus = 'new' | 'kept' | 'saved' | 'queued' | 'unsubscribed' | 'manual' | 'repeat_offender' | 'blocked';
+export type SenderStatus =
+  | 'new'
+  | 'kept'
+  | 'saved'
+  | 'queued'
+  | 'unsubscribed'
+  | 'manual'
+  | 'repeat_offender'
+  | 'blocked'
+  | 'filtered';
+
+/** What a filter swipe does to a sender's mail. At least one is on. */
+export interface FilterActions {
+  skipInbox: boolean;
+  markRead: boolean;
+  /** Gmail label to add, such as `Unsubber/brand.com`, or null. */
+  label: string | null;
+}
 
 export interface UnsubMethods {
   oneClickUrl?: string;
@@ -30,6 +47,8 @@ export interface Sender {
   escalationStep: number;
   returnCount: number;
   lastReturnAt?: string;
+  /** Set once a filter swipe is committed; Remove filter in History deletes it. */
+  filter?: { id: string; actions: FilterActions; at: string };
 }
 
 export interface MessageIndexRow {
@@ -40,7 +59,7 @@ export interface MessageIndexRow {
   listId?: string;
 }
 
-export type AttemptMethod = 'one_click' | 'mailto' | 'manual_link' | 'filter_block' | 'report_spam';
+export type AttemptMethod = 'one_click' | 'mailto' | 'manual_link' | 'filter_block' | 'report_spam' | 'filter_archive';
 export type AttemptResult = 'sent_unconfirmed' | 'sent' | 'failed' | 'done_by_user';
 
 export interface Attempt {
@@ -57,6 +76,8 @@ export interface QueueItem {
   createdAt: string;
   /** Escalation step for repeat offenders; absent for a plain unsubscribe. */
   escalationStep?: number;
+  /** Present for a filter swipe: the filter to create instead of unsubscribing. */
+  filter?: FilterActions;
 }
 
 /** A date range in Gmail's `YYYY/MM/DD` search format; `after` inclusive, `before` exclusive. */
