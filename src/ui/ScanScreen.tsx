@@ -17,7 +17,7 @@ function describe(progress: ScanProgress | null): { label: string; detail: strin
         fraction: progress.total ? progress.done / progress.total : null,
       };
     case 'listing':
-      return { label: 'Listing the last 90 days of mail', detail: `${number.format(progress.found)} messages found`, fraction: null };
+      return { label: 'Listing the last 30 days of mail', detail: `${number.format(progress.found)} messages found`, fraction: null };
     case 'reading':
       return {
         label: 'Reading messages',
@@ -50,7 +50,7 @@ export function ScanScreen() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-[400px] flex-col justify-center gap-6 px-6 py-12">
       <div className="flex flex-col gap-2">
-        <h1 className="text-title font-bold">{status === 'error' ? 'Scan paused' : label}</h1>
+        <h1 className="text-display font-bold tracking-[-0.01em]">{status === 'error' ? 'Scan paused' : label}</h1>
         <p className="text-body text-muted" aria-live="polite">
           {status === 'error' ? error : detail || 'Only headers, subjects and snippets are read.'}
         </p>
@@ -81,7 +81,9 @@ export function ScanScreen() {
         </div>
       )}
 
-      <p className="text-caption text-muted">Keep this screen open. The deck opens when the scan finishes.</p>
+      <p className="text-caption text-muted">
+        The deck opens after the last 30 days. The rest of the 90 days loads in the background while you swipe.
+      </p>
     </main>
   );
 }

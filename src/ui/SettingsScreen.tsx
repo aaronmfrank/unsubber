@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { isStandalone } from '../auth';
 import { BUILD, MILESTONE, useUpdate } from '../pwa';
 import { coveredRange } from '../scan/windows';
+import { useBackfill } from '../state/backfill';
 import { useDeck } from '../state/deck';
 import { useOlderScan } from '../state/olderScan';
 import { useScan } from '../state/scan';
@@ -9,6 +10,7 @@ import { gmail, useSession } from '../state/session';
 import { useToast } from '../state/toast';
 import { applyImport, exportToFile, readExportFile } from '../state/transfer';
 import { type Appearance, useAppearance } from '../theme';
+import { BackfillStatus } from './BackfillStatus';
 import { Button } from './Button';
 import { number, windowLabel } from './format';
 
@@ -53,10 +55,12 @@ export function SettingsScreen() {
 function MailSection({ signedIn }: { signedIn: boolean }) {
   const { running, progress, scanned, next, resuming, refresh, run } = useOlderScan();
   const covered = coveredRange(scanned);
+  const backfill = useBackfill((s) => s.status);
+  const loadingFirst90 = backfill === 'running' || backfill === 'paused' || backfill === 'checking';
 
   useEffect(() => {
     void refresh();
-  }, [refresh]);
+  }, [refresh, backfill]);
 
   const detail =
     progress?.phase === 'reading'
@@ -81,8 +85,13 @@ function MailSection({ signedIn }: { signedIn: boolean }) {
           </div>
           <p className="text-caption text-muted">{detail}</p>
         </div>
+      ) : loadingFirst90 && backfill !== 'checking' ? (
+        <>
+          <BackfillStatus className="self-start" />
+          <p className="text-caption text-muted">Scan older mail is available once the last 90 days finish loading.</p>
+        </>
       ) : (
-        <Button variant="secondary" disabled={!signedIn || !next} onClick={() => void run()}>
+        <Button variant="secondary" disabled={!signedIn || !next || loadingFirst90} onClick={() => void run()}>
           {next ? `${resuming ? 'Resume scanning' : 'Scan'} ${windowLabel(next)}` : 'Scan older mail'}
         </Button>
       )}

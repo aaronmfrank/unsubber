@@ -6,6 +6,7 @@ import { useQueue } from '../../state/queue';
 import { useSync } from '../../state/sync';
 import type { Sender } from '../../storage';
 import { nextEscalation, STEP_LABEL, STEP_SHORT_LABEL } from '../../unsub/escalation';
+import { BackfillStatus } from '../BackfillStatus';
 import { number } from '../format';
 import { ArrowLeft, ArrowRight, ArrowUp, Refresh, Undo } from '../icons';
 import { SwipeCard } from './SwipeCard';
@@ -123,7 +124,9 @@ export function DeckScreen() {
         </p>
       )}
 
-      <div className="min-h-2 flex-1" />
+      <div className="flex min-h-2 flex-1 items-start justify-center overflow-hidden pt-4">
+        <BackfillStatus className="short:hidden" />
+      </div>
 
       <p className="mb-2.5 shrink-0 short:!mb-1.5 text-center text-caption font-semibold text-muted tabular-nums" aria-live="polite">
         {order.length === 0 ? '\u00A0' : topId ? `${number.format(index + 1)} of ${number.format(order.length)}` : `All ${number.format(order.length)} cleared`}

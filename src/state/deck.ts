@@ -34,10 +34,11 @@ interface DeckState {
   /** Moves every saved sender back to Main. Returns how many moved. */
   resetLater(): Promise<number>;
   /**
-   * Takes in senders changed by a sync. If this deck session hasn't started, the order is rebuilt so
-   * new repeat offenders come first; otherwise they show the next time the deck opens.
+   * Takes in senders changed by a sync or background load, and drops cards for people you email.
+   * Before the session starts the order is rebuilt, so new repeat offenders come first; after, new
+   * cards join the end.
    */
-  absorbSync(changed: Sender[]): void;
+  absorbSync(changed: Sender[], removed?: string[]): void;
 }
 
 /** Which way each card left, read by its exit animation. */
@@ -152,10 +153,31 @@ export const useDeck = create<DeckState>()((set, get) => ({
     return restored.length;
   },
 
-  absorbSync(changed) {
-    if (changed.length === 0) return;
-    set((s) => ({ senders: { ...s.senders, ...Object.fromEntries(changed.map((sender) => [sender.id, sender])) } }));
-    const { index, undoStack, deck } = get();
-    if (index === 0 && undoStack.length === 0) get().selectDeck(deck);
+  absorbSync(changed, removed = []) {
+    if (changed.length === 0 && removed.length === 0) return;
+    const gone = new Set(removed);
+    set((s) => {
+      const senders = { ...s.senders, ...Object.fromEntries(changed.map((sender) => [sender.id, sender])) };
+      for (const id of removed) delete senders[id];
+      return {
+        senders,
+        // Cards already swiped this session stay put; removed cards still ahead drop out.
+        order: s.order.filter((id, i) => i < s.index || !gone.has(id)),
+        undoStack: s.undoStack.filter((entry) => !gone.has(entry.id)),
+      };
+    });
+
+    const { index, undoStack, deck, order, senders } = get();
+    if (index === 0 && undoStack.length === 0) {
+      get().selectDeck(deck);
+      return;
+    }
+    // Mid-session, new cards for this deck join the end, so the count grows instead of cards jumping.
+    const inOrder = new Set(order);
+    const additions = deckOrder(
+      deck,
+      changed.filter((s) => !inOrder.has(s.id) && senders[s.id]).map((s) => senders[s.id]!),
+    );
+    if (additions.length > 0) set({ order: [...order, ...additions] });
   },
 }));

@@ -27,6 +27,8 @@ function resultMessage(result: SyncResult): string | null {
     );
   }
   if (result.newSenders > 0) parts.push(`${plural(result.newSenders, 'new sender', 'new senders')} to swipe.`);
+  if (result.removedSenders.length > 0)
+    parts.push(`Removed ${plural(result.removedSenders.length, 'card', 'cards')} for people you email now.`);
   return parts.length > 0 ? parts.join(' ') : null;
 }
 
@@ -44,7 +46,7 @@ export const useSync = create<SyncState>()((set, get) => ({
     set({ running: true });
     try {
       const result = await syncNewMail({ gmail, storage, selfAddress: email });
-      useDeck.getState().absorbSync(result.changed);
+      useDeck.getState().absorbSync(result.changed, result.removedSenders);
       const message = resultMessage(result);
       if (message) useToast.getState().show({ message, tone: 'ok' });
       else if (trigger === 'manual') useToast.getState().show({ message: 'No new mail since the last check.', tone: 'ok' });

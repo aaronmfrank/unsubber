@@ -4,7 +4,8 @@ import { GmailError, type GmailClient } from '../gmail/client';
 import type { GmailMessage } from '../gmail/types';
 import { DexieStorage } from '../storage/dexieAdapter';
 import { deckOrder } from '../state/deckLogic';
-import { runInitialScan, scanOlderMail, syncNewMail, type ScanDeps } from './scan';
+import { needsBackfill, runBackfill, runInitialScan, scanOlderMail, syncNewMail, type ScanDeps } from './scan';
+import { daysAgo } from './windows';
 
 interface FakeMessage {
   id: string;
@@ -15,7 +16,7 @@ interface FakeMessage {
   listId?: string;
 }
 
-function fakeGmail(messages: FakeMessage[], options: { failAfterGets?: number; historyExpired?: boolean } = {}) {
+function fakeGmail(messages: FakeMessage[], options: { failAfterGets?: number; historyExpired?: boolean; newlySent?: string[] } = {}) {
   let gets = 0;
   const toGmail = (m: FakeMessage): GmailMessage => ({
     id: m.id,
@@ -37,7 +38,7 @@ function fakeGmail(messages: FakeMessage[], options: { failAfterGets?: number; h
     getProfile: async () => ({ emailAddress: 'me@gmail.com', messagesTotal: 0, threadsTotal: 0, historyId: 'h-profile' }),
     listAddedMessageIds: async () => {
       if (options.historyExpired) throw new GmailError(404, 'Requested entity was not found.');
-      return { ids: messages.filter((m) => !m.sent).map((m) => m.id), historyId: 'h2' };
+      return { ids: messages.filter((m) => !m.sent).map((m) => m.id), sentIds: options.newlySent ?? [], historyId: 'h2' };
     },
     listAllMessages: async (q: string) => {
       client.queries.push(q);
@@ -198,8 +199,101 @@ describe('syncNewMail', () => {
     await seedUnsubscribed();
     const gmail = fakeGmail([...inbox.filter((m) => m.sent), ...arrivals], { historyExpired: true });
     const result = await syncNewMail({ gmail, storage, selfAddress: 'me@gmail.com' });
-    expect(gmail.queries.at(-1)).toMatch(/^after:\d{4}\/\d{2}\/\d{2} before:\d{4}\/\d{2}\/\d{2} -in:sent/);
+    expect(gmail.queries.some((q) => /^after:\d{4}\/\d{2}\/\d{2} before:\d{4}\/\d{2}\/\d{2} -in:sent/.test(q))).toBe(true);
+    expect(gmail.queries.some((q) => q.startsWith('in:sent after:'))).toBe(true);
     expect(result.newOffenders).toHaveLength(1);
     expect(await storage.getMeta('historyId')).toBe('h-profile');
+  });
+});
+
+describe('quick first scan and background loading', () => {
+  it('scans 30 days first and records what to fill in later', async () => {
+    const gmail = fakeGmail(inbox);
+    await runInitialScan(deps(gmail));
+    const [window] = (await storage.getMeta('scannedWindows'))!;
+    expect(window!.after).toBe(daysAgo(30));
+    expect(await storage.getMeta('mailTarget')).toBe(daysAgo(90));
+    expect(await storage.getMeta('peopleTarget')).toBe(daysAgo(365));
+    expect(await storage.getMeta('peopleCoveredAfter')).toBe(daysAgo(30));
+    expect(gmail.queries[0]).toBe(`in:sent after:${daysAgo(30)} before:${window!.before}`);
+    expect(await needsBackfill(storage)).toBe(true);
+  });
+
+  it('reads a year of sent mail, removes cards for people, then loads incoming mail back to 90 days', async () => {
+    await runInitialScan(deps(fakeGmail(inbox)));
+    await storage.upsertSenders([{ ...(await storage.getSender('deals@brandx.com'))!, status: 'unsubscribed', unsubscribedAt: '2026-11-01T00:00:00.000Z' }]);
+    expect(await storage.getSender('news@paper.com')).toBeDefined();
+
+    const older = fakeGmail([
+      ...inbox,
+      { id: 's-old', from: 'me@gmail.com', to: 'news@paper.com, deals@brandx.com', sent: true },
+      { id: 'old-1', from: 'Vintage <hi@vintage.com>', date: Date.UTC(2026, 8, 1) },
+      { id: 'old-2', from: 'News <news@paper.com>', date: Date.UTC(2026, 8, 2) },
+    ]);
+    const result = await runBackfill(deps(older));
+
+    expect(older.queries[0]).toBe(`in:sent after:${daysAgo(365)} before:${daysAgo(30)}`);
+    expect(result.removedSenders).toEqual(['news@paper.com']);
+    expect(await storage.getSender('news@paper.com')).toBeUndefined();
+    expect((await storage.getSender('deals@brandx.com'))?.status).toBe('unsubscribed');
+
+    expect(result.window).toEqual({ after: daysAgo(90), before: daysAgo(30) });
+    expect(older.queries.at(-1)).toBe(`after:${daysAgo(90)} before:${daysAgo(30)} -in:sent -in:drafts -in:chats`);
+    expect((await storage.getSender('hi@vintage.com'))?.status).toBe('new');
+    expect(await storage.getSender('news@paper.com')).toBeUndefined();
+
+    expect(await needsBackfill(storage)).toBe(false);
+    expect(await storage.getMeta('scannedWindows')).toHaveLength(2);
+    expect((await runBackfill(deps(older))).window).toBeNull();
+  });
+
+  it('resumes the same window after an interruption', async () => {
+    await runInitialScan(deps(fakeGmail(inbox)));
+    await expect(runBackfill(deps(fakeGmail(inbox, { failAfterGets: 2 })))).rejects.toThrow('boom');
+    expect(await storage.getMeta('peopleTarget')).toBeUndefined();
+    expect(await storage.getMeta('olderScanInProgress')).toEqual({ after: daysAgo(90), before: daysAgo(30) });
+    expect(await needsBackfill(storage)).toBe(true);
+
+    const { window } = await runBackfill(deps(fakeGmail(inbox)));
+    expect(window).toEqual({ after: daysAgo(90), before: daysAgo(30) });
+    expect(await needsBackfill(storage)).toBe(false);
+  });
+
+  it('leaves existing 90-day installs alone', async () => {
+    await storage.setMeta('peopleScannedAt', '2026-11-01T00:00:00.000Z');
+    await storage.setMeta('scannedWindows', [{ after: daysAgo(90), before: daysAgo(-1) }]);
+    expect(await needsBackfill(storage)).toBe(false);
+  });
+});
+
+describe('people you start emailing', () => {
+  it('joins the people set during sync, and their card and new mail stay out of the deck', async () => {
+    await runInitialScan(deps(fakeGmail(inbox)));
+    const news = (await storage.getSender('news@paper.com'))!;
+    await storage.upsertSenders([{ ...news, status: 'kept' }]);
+
+    const gmail = fakeGmail(
+      [
+        ...inbox,
+        { id: 's-new', from: 'me@gmail.com', to: 'News <news@paper.com>, New Pal <pal@newfriend.com>', sent: true },
+        { id: 'from-pal', from: 'New Pal <pal@newfriend.com>' },
+      ],
+      { newlySent: ['s-new'] },
+    );
+    const result = await syncNewMail({ gmail, storage, selfAddress: 'me@gmail.com' });
+
+    expect(result.removedSenders).toEqual(['news@paper.com']);
+    expect(await storage.getSender('news@paper.com')).toBeUndefined();
+    expect(await storage.getSender('pal@newfriend.com')).toBeUndefined();
+    expect(await storage.listPeople()).toContain('pal@newfriend.com');
+  });
+
+  it("ignores the app's own unsubscribe emails", async () => {
+    await runInitialScan(deps(fakeGmail(inbox)));
+    await storage.addSentByApp('s-unsub');
+    const gmail = fakeGmail([...inbox, { id: 's-unsub', from: 'me@gmail.com', to: 'deals@brandx.com', sent: true }], { newlySent: ['s-unsub'] });
+    await syncNewMail({ gmail, storage, selfAddress: 'me@gmail.com' });
+    expect(await storage.listPeople()).not.toContain('deals@brandx.com');
+    expect(await storage.getSender('deals@brandx.com')).toBeDefined();
   });
 });

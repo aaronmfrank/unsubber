@@ -138,6 +138,26 @@ describe('deck store', () => {
     expect(await useDeck.getState().resetLater()).toBe(0);
   });
 
+  it('takes in a background load mid-session without reshuffling', async () => {
+    await seed(4);
+    const [first, second, third] = useDeck.getState().order;
+    useDeck.getState().swipe('right');
+    useDeck.getState().absorbSync([sender('late@x.com', { messageCount: 5000 })], [third!]);
+
+    const { order, index, senders } = useDeck.getState();
+    expect(order[0]).toBe(first);
+    expect(order[index]).toBe(second);
+    expect(order).not.toContain(third);
+    expect(order.at(-1)).toBe('late@x.com');
+    expect(senders[third!]).toBeUndefined();
+  });
+
+  it('rebuilds the order before the session starts', async () => {
+    await seed(3);
+    useDeck.getState().absorbSync([sender('late@x.com', { messageCount: 5000 })]);
+    expect(useDeck.getState().order[0]).toBe('late@x.com');
+  });
+
   it('shows kept senders in Re-review after switching decks', async () => {
     await seed(3);
     useDeck.getState().swipe('right');

@@ -14,6 +14,8 @@ export interface StorageAdapter {
   upsertSenders(senders: Sender[]): Promise<void>;
   listSenders(options?: ListSendersOptions): Promise<Sender[]>;
   listSendersByDomain(domains: string[]): Promise<Sender[]>;
+  /** Deletes senders and their message index rows, for addresses that turned out to be people you email. */
+  removeSenders(ids: string[]): Promise<void>;
   countSenders(): Promise<number>;
 
   addMessages(messages: MessageIndexRow[]): Promise<void>;

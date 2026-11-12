@@ -119,8 +119,9 @@ describe('mergeIntoSenders', () => {
 });
 
 describe('scan windows', () => {
-  it('covers the last 90 days through today', () => {
-    expect(initialWindow(new Date(2026, 10, 11))).toEqual({ after: '2026/08/13', before: '2026/11/12' });
+  it('covers the last 30 days through today, or another span', () => {
+    expect(initialWindow(new Date(2026, 10, 11))).toEqual({ after: '2026/10/12', before: '2026/11/12' });
+    expect(initialWindow(new Date(2026, 10, 11), 90)).toEqual({ after: '2026/08/13', before: '2026/11/12' });
     expect(formatGmailDate(new Date(2026, 0, 5))).toBe('2026/01/05');
   });
 

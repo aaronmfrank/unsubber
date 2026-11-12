@@ -118,6 +118,7 @@ Screenshots are named `NN-name-light.png` / `NN-name-dark.png`.
 | 05 | Deck: Main | Core loop | See components. |
 | 05b | Deck with a queue | Review button showing | |
 | 05c | Deck on a short phone | 375×667 compact layout | Not on the boards. |
+| 05d | Deck while older mail loads | Background loading after the quick 30-day first scan | Status chip above the counter. Not on the boards. |
 | 06–08 | Deck: dragging left / right / up | Direction feedback | Stamp and lit circle; Keep and Later labels. |
 | 09 | Deck: preview | Peek before deciding | Expanded card. |
 | 10 | Deck: repeat offender | Escalation | Stamp, red detail line, next-step hint and button label. |
@@ -128,6 +129,7 @@ Screenshots are named `NN-name-light.png` / `NN-name-dark.png`.
 | 17 | Manual queue | Senders needing a click | |
 | 18 | Settings | Mail, Decks, Move to another device, About, Sign-in checks, This device | Partly developer-facing for now. |
 | 18b | Settings: scanning older mail | Progress inline in the Mail section | |
+| 18c | Settings while the last 90 days load | Scan older mail waits | |
 | 19 | History | Every unsubscribed, repeat-offender and blocked sender, newest activity first | Filter chips, search, rows. |
 | 19b | History: row expanded | Attempt timeline for one sender | Shows a failed attempt in red. |
 | 19c | History: filtered | Repeat offenders only | |

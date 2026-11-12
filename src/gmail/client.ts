@@ -176,11 +176,13 @@ export function createGmailClient(auth: AuthProvider, events: GmailClientEvents 
     },
 
     /**
-     * Ids of messages added since `startHistoryId`, skipping sent, drafts, chats, spam and trash.
+     * Messages added since `startHistoryId`: incoming `ids` (skipping drafts, chats, spam and trash) and
+     * `sentIds`, whose recipients join the people-you-email set.
      * Throws a 404 GmailError when the history id has expired (after about a week).
      */
-    async listAddedMessageIds(startHistoryId: string): Promise<{ ids: string[]; historyId: string }> {
+    async listAddedMessageIds(startHistoryId: string): Promise<{ ids: string[]; sentIds: string[]; historyId: string }> {
       const ids = new Set<string>();
+      const sentIds = new Set<string>();
       let pageToken: string | undefined;
       let historyId = startHistoryId;
       do {
@@ -189,13 +191,15 @@ export function createGmailClient(auth: AuthProvider, events: GmailClientEvents 
         const page = await request<GmailHistoryPage>(`/history?${params}`);
         for (const entry of page.history ?? []) {
           for (const { message } of entry.messagesAdded ?? []) {
-            if (!message.labelIds?.some((label) => SKIPPED_LABELS.has(label))) ids.add(message.id);
+            const labels = message.labelIds ?? [];
+            if (labels.includes('SENT')) sentIds.add(message.id);
+            else if (!labels.some((label) => SKIPPED_LABELS.has(label))) ids.add(message.id);
           }
         }
         historyId = page.historyId;
         pageToken = page.nextPageToken;
       } while (pageToken);
-      return { ids: [...ids], historyId };
+      return { ids: [...ids], sentIds: [...sentIds], historyId };
     },
 
     listLabels: async () => (await request<{ labels?: GmailLabel[] }>('/labels')).labels ?? [],

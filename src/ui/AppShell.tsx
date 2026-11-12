@@ -2,6 +2,8 @@ import { useEffect, type ComponentType } from 'react';
 import { useDeck } from '../state/deck';
 import { useNav, type Screen } from '../state/nav';
 import { useScan } from '../state/scan';
+import { useBackfill } from '../state/backfill';
+import { useSession } from '../state/session';
 import { useSync } from '../state/sync';
 import { ConfirmSheet } from './deck/ConfirmSheet';
 import { DeckScreen } from './deck/DeckScreen';
@@ -35,8 +37,16 @@ export function AppShell() {
   const manualCount = useDeck((s) => Object.values(s.senders).filter((sender) => sender.status === 'manual').length);
 
   useEffect(() => {
-    void load().then(() => useSync.getState().sync('open'));
+    void load()
+      .then(() => useSync.getState().sync('open'))
+      .then(() => useBackfill.getState().start());
   }, [scanVersion, load]);
+
+  // Background loading pauses when sign-in expires; pick it back up once you're signed in again.
+  const sessionStatus = useSession((s) => s.status);
+  useEffect(() => {
+    if (sessionStatus === 'signed_in' && useBackfill.getState().status === 'paused') void useBackfill.getState().start();
+  }, [sessionStatus]);
 
   useEffect(() => {
     const onVisible = () => {

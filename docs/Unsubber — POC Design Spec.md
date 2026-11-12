@@ -116,6 +116,8 @@ Request all three at first sign-in. All are restricted or sensitive scopes, whic
 
 ### Initial scan
 
+**Quick first scan (Nov 12).** The first scan covers only the last 30 days, sent and incoming, so the deck opens in about a third of the time. The rest loads in the background once the deck is open: first sent mail back to a year for the people set, so more people are filtered before more cards arrive, then incoming mail from day 30 to day 90. The steps below describe the full 90-day result. The meta keys `peopleTarget`, `peopleCoveredAfter` and `mailTarget` track progress, and `olderScanInProgress` makes it resumable. Installs that already have 90 days skip it. A quiet status line on the deck shows progress, a toast says "Finished loading the last 90 days. N more senders in Main.", and new senders join the end of the deck you're swiping. Scan older mail waits until it's done. Rate limits retry after a minute, and an expired sign-in resumes once you sign in again.
+
 1. Build the people-I-talk-to set. List `in:sent newer_than:365d`, fetch `To` and `Cc` headers, and store every recipient address. Skip messages Unsubber itself sent (see below).
 2. List candidate messages with `messages.list`, `q = newer_than:90d -in:sent -in:drafts -in:chats`. Spam and Trash are excluded by default. Page through `nextPageToken`.
 3. For each id, call `messages.get` with `format=metadata` and `metadataHeaders` = `From`, `Subject`, `Date`, `List-Unsubscribe`, `List-Unsubscribe-Post`, `List-Id`.
@@ -133,7 +135,7 @@ A Scan older mail action scans the next 90-day window back, using `after:` and `
 
 ### Incremental sync
 
-On every app open and on a manual refresh, call `users.history.list` with `startHistoryId` and `historyTypes=messageAdded`. Fetch metadata for each new message, update senders, and run repeat-offender checks. History ids are usually valid for about a week. On a 404, fall back to a scan from the last sync date to now.
+On every app open and on a manual refresh, call `users.history.list` with `startHistoryId` and `historyTypes=messageAdded`. First read the recipients of newly sent messages (`SENT` label, skipping `sentByApp`) into the people set; any `new`, `saved` or `kept` card for one of them is removed, while queued, unsubscribed and blocked senders stay. Then fetch metadata for each new incoming message, update senders, and run repeat-offender checks. History ids are usually valid for about a week. On a 404, fall back to a scan from the last sync date to now.
 
 ### Write actions
 

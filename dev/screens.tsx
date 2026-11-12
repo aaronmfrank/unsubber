@@ -7,6 +7,7 @@ import type { ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '../src/index.css';
 import { useUpdate } from '../src/pwa';
+import { useBackfill } from '../src/state/backfill';
 import { useDeck } from '../src/state/deck';
 import { useNav } from '../src/state/nav';
 import { useOlderScan } from '../src/state/olderScan';
@@ -121,7 +122,7 @@ async function queueAll(senders: Sender[]) {
 }
 
 Object.assign(gmail, {
-  listAddedMessageIds: async () => ({ ids: [], historyId: 'h1' }),
+  listAddedMessageIds: async () => ({ ids: [], sentIds: [], historyId: 'h1' }),
   getMessageMetadata: async (id: string) => ({
     id,
     threadId: 't',
@@ -175,6 +176,9 @@ async function setup(): Promise<ReactNode> {
     useOlderScan.setState({ refresh: async () => {} });
   }
   if (screen === 'deck-queued') await queueAll(main.slice(6, 9));
+  if (screen === 'deck-backfilling' || screen === 'settings-backfilling') {
+    useBackfill.setState({ status: 'running', progress: { phase: 'reading', done: 340, total: 910, senders: 212 }, start: async () => {} });
+  }
   if (screen === 'confirm' || screen === 'confirm-running') await queueAll([offender, ...main.slice(0, 5), main[8]!, main[9]!].filter((s) => screen === 'confirm' || s !== offender));
   if (screen === 'expired') useSession.setState({ status: 'expired', error: null });
   if (screen === 'manual') useNav.setState({ screen: 'manual' });

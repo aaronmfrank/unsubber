@@ -76,6 +76,12 @@ export interface MetaValues {
   /** An older 90-day window being scanned, so an interrupted Scan older mail resumes. */
   olderScanInProgress: ScanWindow;
   peopleScannedAt: string;
+  /** Oldest day (Gmail date) of sent mail read into the people set so far. */
+  peopleCoveredAfter: string;
+  /** How far back the people set should reach; background loading fills the gap. */
+  peopleTarget: string;
+  /** How far back incoming mail should reach after the quick first scan; cleared once covered. */
+  mailTarget: string;
   /** Gmail id of the `Unsubber/Blocked` label, created on first Block. */
   blockedLabelId: string;
   storagePersisted: boolean;

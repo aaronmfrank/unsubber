@@ -63,6 +63,14 @@ export class DexieStorage implements StorageAdapter {
     return domains.length === 0 ? Promise.resolve([]) : this.db.senders.where('domain').anyOf(domains).toArray();
   }
 
+  async removeSenders(ids: string[]) {
+    if (ids.length === 0) return;
+    await this.db.transaction('rw', this.db.senders, this.db.messages, async () => {
+      await this.db.senders.bulkDelete(ids);
+      await this.db.messages.where('senderId').anyOf(ids).delete();
+    });
+  }
+
   countSenders() {
     return this.db.senders.count();
   }
