@@ -43,7 +43,7 @@ const INVISIBLE = /[\u00AD\u034F\u061C\u115F\u1160\u17B4\u17B5\u180E\u200B-\u200
 
 let decoder: HTMLTextAreaElement | null = null;
 
-/** Gmail snippets arrive HTML-escaped (`&#39;`), sometimes padded with invisible characters. */
+/** Gmail snippets arrive HTML-escaped (`&#39;`), sometimes with markup or invisible padding characters. */
 export function cleanSnippet(snippet: string): string {
   let text = snippet;
   if (text.includes('&') && typeof document !== 'undefined') {
@@ -51,7 +51,8 @@ export function cleanSnippet(snippet: string): string {
     decoder.innerHTML = text;
     text = decoder.value;
   }
-  return text.replace(INVISIBLE, '').replace(/\s+/g, ' ').trim();
+  // Some senders' snippets carry escaped markup (`&lt;em&gt;`), which decoding turns into literal tags.
+  return text.replace(/<\/?[a-z][^<>]*>/gi, '').replace(INVISIBLE, '').replace(/\s+/g, ' ').trim();
 }
 
 export function gmailThreadUrl(threadId: string, account: string | null): string {

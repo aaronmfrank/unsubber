@@ -59,11 +59,14 @@ export function AppShell() {
   return (
     <div className="flex h-dvh flex-col pt-[env(safe-area-inset-top)] min-[900px]:flex-row">
 
-      <main className="relative flex min-h-0 flex-1 flex-col overflow-y-auto pb-[calc(106px+env(safe-area-inset-bottom))] min-[900px]:pb-0">
+      <main className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
         <div className="mx-auto w-full max-w-[400px] px-4 empty:hidden [&:has(>*)]:pt-4">
           <ExpiredNotice />
         </div>
-        <div className="min-h-0 flex-1">
+        {/* The nav pill floats over the content, so each screen reserves room for it at the bottom. The deck
+            fits exactly one screen (min-h-0 lets its card shrink); other screens grow with their content so
+            scrolling reaches the space after the last item. */}
+        <div className={`flex-1 pb-[calc(106px+env(safe-area-inset-bottom))] min-[900px]:pb-0 ${screen === 'deck' ? 'min-h-0' : ''}`}>
           {screen === 'deck' && <DeckScreen />}
           {screen === 'manual' && <ManualScreen />}
           {screen === 'history' && <HistoryScreen />}

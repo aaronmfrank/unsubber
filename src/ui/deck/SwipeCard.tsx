@@ -150,8 +150,8 @@ export function SwipeCard({ sender, deck, isTop, expanded, leftLabel, onToggle, 
           <CardBody sender={sender} deck={deck} expanded={expanded} />
         </div>
 
-        <motion.div aria-hidden="true" className="pointer-events-none absolute top-14 left-[134px]" style={{ opacity: unsubOpacity }}>
-          <Stamp>{leftLabel}</Stamp>
+        <motion.div aria-hidden="true" className="pointer-events-none absolute inset-x-4 top-14 flex justify-center" style={{ opacity: unsubOpacity }}>
+          <Stamp className={leftLabel.length > 12 ? 'text-[22px] leading-7' : ''}>{leftLabel}</Stamp>
         </motion.div>
         <motion.div aria-hidden="true" className="pointer-events-none absolute top-14 left-6" style={{ opacity: keepOpacity }}>
           <ActionLabel tone="keep">Keep</ActionLabel>
