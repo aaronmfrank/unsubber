@@ -1,3 +1,4 @@
+import type { UnsubberExport } from './exportFormat';
 import type { Attempt, MessageIndexRow, MetaKey, MetaValues, QueueItem, Sender, SenderSort, SenderStatus } from './types';
 
 export interface ListSendersOptions {
@@ -26,6 +27,8 @@ export interface StorageAdapter {
 
   addAttempt(attempt: Attempt): Promise<void>;
   listAttempts(senderId: string): Promise<Attempt[]>;
+  /** Every attempt, oldest first. */
+  listAllAttempts(): Promise<Attempt[]>;
 
   enqueue(item: QueueItem): Promise<void>;
   dequeue(senderId: string): Promise<void>;
@@ -41,4 +44,9 @@ export interface StorageAdapter {
   deleteMeta(key: MetaKey): Promise<void>;
 
   clearAll(): Promise<void>;
+
+  /** Everything on this device as one object, for moving to another device by hand. */
+  exportAll(meta: { account: string | null; appVersion: string }): Promise<UnsubberExport>;
+  /** Replaces everything on this device with an export. The UI confirms first. */
+  importAll(data: UnsubberExport): Promise<void>;
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { GmailMessage } from '../gmail/types';
 import { mergeIntoSenders, normalizeListId, senderDomain, toScannedMessage, type ScannedMessage } from './senders';
-import { formatGmailDate, initialWindow, windowQuery } from './windows';
+import { coveredRange, formatGmailDate, initialWindow, olderWindow, windowQuery } from './windows';
 
 function msg(overrides: Partial<ScannedMessage> & { id: string; date: string }): ScannedMessage {
   return {
@@ -122,6 +122,16 @@ describe('scan windows', () => {
   it('covers the last 90 days through today', () => {
     expect(initialWindow(new Date(2026, 10, 11))).toEqual({ after: '2026/08/13', before: '2026/11/12' });
     expect(formatGmailDate(new Date(2026, 0, 5))).toBe('2026/01/05');
+  });
+
+  it('steps back 90 days from the oldest window scanned', () => {
+    const scanned = [
+      { after: '2026/08/13', before: '2026/11/12' },
+      { after: '2026/05/15', before: '2026/08/13' },
+    ];
+    expect(olderWindow(scanned)).toEqual({ after: '2026/02/14', before: '2026/05/15' });
+    expect(coveredRange(scanned)).toEqual({ after: '2026/05/15', before: '2026/11/12' });
+    expect(coveredRange([])).toBeNull();
   });
 
   it('excludes sent, drafts and chats', () => {

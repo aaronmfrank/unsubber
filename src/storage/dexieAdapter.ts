@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
+import { DEVICE_ONLY_META, EXPORT_FORMAT, EXPORT_VERSION, type UnsubberExport } from './exportFormat';
 import type { ListSendersOptions, StorageAdapter } from './StorageAdapter';
 import type { Attempt, MessageIndexRow, MetaKey, MetaValues, QueueItem, Sender } from './types';
 
@@ -153,5 +154,52 @@ export class DexieStorage implements StorageAdapter {
 
   async clearAll() {
     await this.db.transaction('rw', this.db.tables, () => Promise.all(this.db.tables.map((t) => t.clear())));
+  }
+
+  async exportAll({ account, appVersion }: { account: string | null; appVersion: string }): Promise<UnsubberExport> {
+    const { db } = this;
+    return db.transaction('r', db.tables, async () => {
+      const metaRows = await db.meta.toArray();
+      return {
+        format: EXPORT_FORMAT,
+        version: EXPORT_VERSION,
+        exportedAt: new Date().toISOString(),
+        account,
+        appVersion,
+        data: {
+          senders: await db.senders.toArray(),
+          messages: await db.messages.toArray(),
+          attempts: await db.attempts.orderBy('id').toArray(),
+          queue: await db.queue.toArray(),
+          people: (await db.people.toCollection().primaryKeys()) as string[],
+          sentByApp: (await db.sentByApp.toCollection().primaryKeys()) as string[],
+          meta: Object.fromEntries(metaRows.filter((row) => !DEVICE_ONLY_META.includes(row.key)).map((row) => [row.key, row.value])),
+        },
+      };
+    });
+  }
+
+  async importAll({ data }: UnsubberExport) {
+    const { db } = this;
+    await db.transaction('rw', db.tables, async () => {
+      const keepHere = await db.meta.bulkGet([...DEVICE_ONLY_META]);
+      await Promise.all(db.tables.map((table) => table.clear()));
+      await db.senders.bulkPut(data.senders);
+      await db.messages.bulkPut(data.messages);
+      await db.attempts.bulkPut(data.attempts);
+      await db.queue.bulkPut(data.queue);
+      await db.people.bulkPut(data.people.map((address) => ({ address })));
+      await db.sentByApp.bulkPut(data.sentByApp.map((messageId) => ({ messageId })));
+      await db.meta.bulkPut([
+        ...Object.entries(data.meta)
+          .filter(([key]) => !DEVICE_ONLY_META.includes(key as MetaKey))
+          .map(([key, value]) => ({ key: key as MetaKey, value })),
+        ...keepHere.filter((row): row is MetaRow => Boolean(row)),
+      ]);
+    });
+  }
+
+  listAllAttempts() {
+    return this.db.attempts.orderBy('id').toArray();
   }
 }

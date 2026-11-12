@@ -10,6 +10,15 @@ export function shortDate(iso: string): string {
   return (date.getFullYear() === new Date().getFullYear() ? sameYear : otherYear).format(date);
 }
 
+const windowDate = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+/** "May 15, 2026 – Aug 12, 2026" for a Gmail date window, whose `before` is exclusive. */
+export function windowLabel({ after, before }: { after: string; before: string }): string {
+  const [y1, m1, d1] = after.split('/').map(Number);
+  const [y2, m2, d2] = before.split('/').map(Number);
+  return `${windowDate.format(new Date(y1!, m1! - 1, d1!))} – ${windowDate.format(new Date(y2!, m2! - 1, d2! - 1))}`;
+}
+
 /** "47 emails, last on Nov 9" */
 export function countLine(sender: Sender): string {
   const emails = `${number.format(sender.messageCount)} ${sender.messageCount === 1 ? 'email' : 'emails'}`;

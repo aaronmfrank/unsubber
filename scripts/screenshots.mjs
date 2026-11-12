@@ -28,6 +28,15 @@ const tapCard = async (page) => {
   await page.waitForTimeout(500);
 };
 
+const openHistoryRow = (name) => async (page) => {
+  await page.getByRole('button', { name: new RegExp(name) }).first().click();
+  await page.waitForTimeout(300);
+};
+const filterHistory = (label) => async (page) => {
+  await page.getByRole('button', { name: new RegExp(`^${label}`) }).click();
+  await page.waitForTimeout(300);
+};
+
 const SHOTS = [
   { name: '01-sign-in', screen: 'sign-in' },
   { name: '02-sign-in-returning', screen: 'sign-in-returning' },
@@ -47,12 +56,17 @@ const SHOTS = [
   { name: '16-toast-error', screen: 'toast-error' },
   { name: '17-manual-queue', screen: 'manual', viewport: TALL_PHONE },
   { name: '18-settings', screen: 'settings', viewport: TALL_PHONE },
-  { name: '19-history-placeholder', screen: 'history' },
+  { name: '18b-settings-scanning-older', screen: 'settings-scanning' },
+  { name: '19-history', screen: 'history', viewport: TALL_PHONE },
+  { name: '19b-history-expanded', screen: 'history', viewport: TALL_PHONE, action: openHistoryRow('Stubborn Co') },
+  { name: '19c-history-filtered', screen: 'history', action: filterHistory('Repeat offenders') },
+  { name: '19d-history-empty', screen: 'history-empty' },
   { name: '20-sign-in-expired', screen: 'expired' },
   { name: '21-update-banner', screen: 'update' },
   { name: '30-desktop-deck', screen: 'deck', viewport: DESKTOP },
   { name: '31-desktop-confirm-sheet', screen: 'confirm', viewport: DESKTOP },
   { name: '32-desktop-settings', screen: 'settings', viewport: DESKTOP },
+  { name: '33-desktop-history', screen: 'history', viewport: DESKTOP, action: openHistoryRow('Stubborn Co') },
 ].filter((shot) => !filter || shot.name.includes(filter));
 
 const server = await createServer({ server: { port: PORT, strictPort: true }, logLevel: 'error' });

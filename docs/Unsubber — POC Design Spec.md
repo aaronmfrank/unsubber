@@ -381,6 +381,14 @@ The UI and logic call only these methods, never Dexie directly:
 - `getMeta(key)`, `setMeta(key, value)`
 - `exportAll()` returns one JSON object; `importAll(json)` replaces local state after a confirm dialog
 
+Build notes (milestone 7):
+
+- **Export file:** `unsubber-export-YYYY-MM-DD.json`, `{ format: 'unsubber-export', version: 1, exportedAt, account, appVersion, data: { senders, messages, attempts, queue, people, sentByApp, meta } }`. Device-only meta (`storagePersisted`, `scanInProgress`, `olderScanInProgress`) is left out on export and kept on import.
+- **Import checks:** import rejects files that aren't exports, are from another version, or are damaged, and refuses an export from a different Gmail account than the one signed in. After import the decks reload and a sync runs from the imported `historyId`.
+- **Moving the file:** the iPhone home-screen app can't download files, so Export opens the share sheet there (Save to Files, AirDrop). Browsers download the file.
+- **Scan older mail:** scans the 90 days before the oldest scanned window, through the same ingest as sync, so repeat-offender checks run too. The window is recorded in `olderScanInProgress` while running, so an interrupted scan resumes the same window.
+- **History screen:** unsubscribed, repeat-offender and blocked senders, newest activity first. Filter chips, search, a standing line per sender (grace period end, quiet since, returns, blocked date) and an expandable attempt timeline.
+
 ### Persistence on iPhone
 
 Install to the home screen and always open from the icon. Safari can clear a site's storage after 7 days without a visit, but home-screen web apps are exempt, and the two keep separate storage. Call `navigator.storage.persist()` on first run.

@@ -9,6 +9,7 @@ import '../src/index.css';
 import { useUpdate } from '../src/pwa';
 import { useDeck } from '../src/state/deck';
 import { useNav } from '../src/state/nav';
+import { useOlderScan } from '../src/state/olderScan';
 import { useQueue } from '../src/state/queue';
 import { useScan } from '../src/state/scan';
 import { gmail, useSession } from '../src/state/session';
@@ -80,6 +81,26 @@ const manual: Sender[] = [
   sender('noreply@tabletopforge.com', 'Tabletop Forge', 104, 'Update 31: shipping wave two is underway', '', { bodyLinks: [] }, { status: 'manual' }),
 ];
 
+const history: Sender[] = [
+  sender('news@email.ridgeline.com', 'Ridgeline Outfitters', 14, 'New arrivals', '', link, { status: 'unsubscribed', unsubscribedAt: daysAgo(3), escalationStep: 1 }),
+  sender('deals@mail.brightsidebundle.com', 'Brightside Bundle', 137, 'Weekly bundle', '', oneClick, { status: 'unsubscribed', unsubscribedAt: daysAgo(25), escalationStep: 1 }),
+  sender('notices@email.metropg.com', 'Metro Power & Gas', 16, 'Winter tips', '', email, { status: 'unsubscribed', unsubscribedAt: daysAgo(30), escalationStep: 1 }),
+  { ...offender },
+  sender('promo@stubborn.example.com', 'Stubborn Co', 120, 'Final notice', '', oneClick, { status: 'blocked', unsubscribedAt: daysAgo(50), escalationStep: 4, returnCount: 9 }),
+  sender('offers@spammy-deals.com', 'Spammy Deals', 64, 'You won!', '', none, { status: 'blocked', escalationStep: 1 }),
+];
+
+const historyAttempts = [
+  { senderId: 'news@email.ridgeline.com', method: 'manual_link', at: daysAgo(3), result: 'done_by_user', detail: 'https://www.ridgeline.com/email-preferences' },
+  { senderId: 'deals@mail.brightsidebundle.com', method: 'one_click', at: daysAgo(25), result: 'sent_unconfirmed', detail: 'https://u.brightsidebundle.com/1c' },
+  { senderId: 'notices@email.metropg.com', method: 'mailto', at: daysAgo(30), result: 'sent', detail: 'sent-1' },
+  { senderId: 'promo@stubborn.example.com', method: 'one_click', at: daysAgo(50), result: 'failed', detail: 'Failed to fetch' },
+  { senderId: 'promo@stubborn.example.com', method: 'mailto', at: daysAgo(50), result: 'sent', detail: 'sent-2' },
+  { senderId: 'promo@stubborn.example.com', method: 'one_click', at: daysAgo(30), result: 'sent_unconfirmed', detail: 'https://u.stubborn.example.com/1c' },
+  { senderId: 'promo@stubborn.example.com', method: 'filter_block', at: daysAgo(6), result: 'sent', detail: 'filter-1' },
+  { senderId: 'offers@spammy-deals.com', method: 'report_spam', at: daysAgo(2), result: 'sent', detail: '64 messages moved to Spam' },
+] as const;
+
 async function seed(senders: Sender[]) {
   await storage.clearAll();
   await storage.upsertSenders(senders);
@@ -136,12 +157,27 @@ async function setup(): Promise<ReactNode> {
   signedIn();
   useScan.setState({ status: 'done' });
   const withOffender = screen === 'deck-repeat-offender' || screen === 'confirm';
-  await seed([...(withOffender ? [offender] : []), ...(screen === 'deck-empty' ? [] : main), ...kept, ...(screen === 'manual' ? manual : [])]);
+  const isHistory = screen.startsWith('history');
+  await seed([
+    ...(withOffender ? [offender] : []),
+    ...(screen === 'deck-empty' ? [] : main),
+    ...kept,
+    ...(screen === 'manual' ? manual : []),
+    ...(isHistory ? history : []),
+  ]);
+  if (isHistory) {
+    for (const [i, attempt] of historyAttempts.entries()) await storage.addAttempt({ id: `h${String(i).padStart(3, '0')}`, ...attempt });
+  }
+  if (screen === 'history-empty') await storage.clearAll();
+  if (screen === 'settings-scanning') {
+    useOlderScan.setState({ running: true, progress: { phase: 'reading', done: 640, total: 1830, senders: 274 } });
+    useOlderScan.setState({ refresh: async () => {} });
+  }
   if (screen === 'confirm' || screen === 'confirm-running') await queueAll([offender, ...main.slice(0, 5), main[8]!, main[9]!].filter((s) => screen === 'confirm' || s !== offender));
   if (screen === 'expired') useSession.setState({ status: 'expired', error: null });
   if (screen === 'manual') useNav.setState({ screen: 'manual' });
-  if (screen === 'settings') useNav.setState({ screen: 'settings' });
-  if (screen === 'history') useNav.setState({ screen: 'history' });
+  if (screen.startsWith('settings')) useNav.setState({ screen: 'settings' });
+  if (isHistory) useNav.setState({ screen: 'history' });
   if (screen === 'deck-rereview') useDeck.setState({ deck: 'rereview' });
   if (screen === 'deck-later') useDeck.setState({ deck: 'later' });
   return <AppShell />;
@@ -156,7 +192,7 @@ async function afterMount() {
     useToast.getState().show({ message: 'Gmail sign-in expired. 4 still queued. Sign in again and tap Unsubscribe.', tone: 'error' });
   if (screen === 'update') useUpdate.setState({ ready: true });
   await new Promise((r) => setTimeout(r, 300));
-  Object.assign(window, { __ready: true });
+  Object.assign(window, { __ready: true, __storage: storage, __deck: useDeck });
 }
 
 const content = await setup();

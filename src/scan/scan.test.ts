@@ -4,7 +4,7 @@ import { GmailError, type GmailClient } from '../gmail/client';
 import type { GmailMessage } from '../gmail/types';
 import { DexieStorage } from '../storage/dexieAdapter';
 import { deckOrder } from '../state/deckLogic';
-import { runInitialScan, syncNewMail, type ScanDeps } from './scan';
+import { runInitialScan, scanOlderMail, syncNewMail, type ScanDeps } from './scan';
 
 interface FakeMessage {
   id: string;
@@ -110,6 +110,36 @@ describe('runInitialScan', () => {
     const counts = Object.fromEntries((await storage.listSenders()).map((s) => [s.id, s.messageCount]));
     expect(counts).toEqual({ 'deals@brandx.com': 2, 'news@paper.com': 1, 'promo0@shop.com': 84, 'promo1@shop.com': 83, 'promo2@shop.com': 83 });
     expect(await storage.countMessages()).toBe(253);
+  });
+});
+
+describe('scanOlderMail', () => {
+  it('scans the previous 90 days, adds counts to known senders and records the window', async () => {
+    await runInitialScan(deps(fakeGmail(inbox)));
+    const older = fakeGmail([
+      ...inbox.filter((m) => m.sent),
+      { id: 'old-1', from: 'Brand X <deals@brandx.com>', date: Date.UTC(2026, 5, 1) },
+      { id: 'old-2', from: 'Vintage <hi@vintage.com>', date: Date.UTC(2026, 5, 2) },
+    ]);
+    const { window, result } = await scanOlderMail(deps(older));
+
+    expect(older.queries.at(-1)).toBe(`after:${window.after} before:${window.before} -in:sent -in:drafts -in:chats`);
+    expect(result.newSenders).toBe(1);
+    expect((await storage.getSender('deals@brandx.com'))?.messageCount).toBe(3);
+    expect((await storage.getSender('hi@vintage.com'))?.status).toBe('new');
+    expect(await storage.getMeta('scannedWindows')).toHaveLength(2);
+    expect(await storage.getMeta('olderScanInProgress')).toBeUndefined();
+  });
+
+  it('resumes the same window after an interruption', async () => {
+    await runInitialScan(deps(fakeGmail(inbox)));
+    const failing = fakeGmail(inbox, { failAfterGets: 0 });
+    await expect(scanOlderMail(deps(failing))).rejects.toThrow('boom');
+    const pending = await storage.getMeta('olderScanInProgress');
+    expect(pending).toBeDefined();
+
+    const { window } = await scanOlderMail(deps(fakeGmail(inbox)));
+    expect(window).toEqual(pending);
   });
 });
 

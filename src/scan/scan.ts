@@ -6,7 +6,7 @@ import type { ScanWindow } from '../storage/types';
 import { ingestMessages, type IngestResult } from './ingest';
 import { mapPool } from './pool';
 import { SCAN_HEADERS, toScannedMessage, type ScannedMessage } from './senders';
-import { initialWindow, windowQuery, windowSince } from './windows';
+import { initialWindow, olderWindow, windowQuery, windowSince } from './windows';
 
 const PEOPLE_QUERY = 'in:sent newer_than:365d';
 const PEOPLE_HEADERS = ['To', 'Cc', 'Bcc'] as const;
@@ -69,7 +69,7 @@ function withSelf(people: Set<string>, selfAddress: string): Set<string> {
  * Scans one window of mail into sender records. Safe to rerun: messages already in the index
  * are skipped, so an interrupted scan picks up where it stopped.
  */
-export async function scanWindow(deps: ScanDeps, window: ScanWindow): Promise<void> {
+export async function scanWindow(deps: ScanDeps, window: ScanWindow): Promise<IngestResult> {
   const { gmail, storage, onProgress } = deps;
   const people = await ensurePeopleSet(deps);
 
@@ -81,10 +81,27 @@ export async function scanWindow(deps: ScanDeps, window: ScanWindow): Promise<vo
   let senders = await storage.countSenders();
   onProgress({ phase: 'reading', done: skipped, total: refs.length, senders });
 
-  await readAndIngest(deps, pending, people, (done, batch) => {
+  return readAndIngest(deps, pending, people, (done, batch) => {
     senders += batch.newSenders;
     onProgress({ phase: 'reading', done: skipped + done, total: refs.length, senders });
   });
+}
+
+/**
+ * Scans the 90 days before everything scanned so far. New senders join Main as `new`; senders already
+ * known get their counts added. An interrupted run resumes the same window.
+ */
+export async function scanOlderMail(deps: ScanDeps): Promise<{ window: ScanWindow; result: IngestResult }> {
+  const { storage } = deps;
+  const windows = (await storage.getMeta('scannedWindows')) ?? [];
+  const window = (await storage.getMeta('olderScanInProgress')) ?? olderWindow(windows);
+  await storage.setMeta('olderScanInProgress', window);
+
+  const result = await scanWindow(deps, window);
+
+  await storage.setMeta('scannedWindows', [...windows, window]);
+  await storage.deleteMeta('olderScanInProgress');
+  return { window, result };
 }
 
 /** Fetches metadata for new message ids in batches and folds each batch into senders. */

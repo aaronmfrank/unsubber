@@ -73,6 +73,8 @@ export interface MetaValues {
   scannedWindows: ScanWindow[];
   /** Set while a scan runs, so an interrupted scan resumes instead of starting over. */
   scanInProgress: { window: ScanWindow; historyId: string; startedAt: string };
+  /** An older 90-day window being scanned, so an interrupted Scan older mail resumes. */
+  olderScanInProgress: ScanWindow;
   peopleScannedAt: string;
   /** Gmail id of the `Unsubber/Blocked` label, created on first Block. */
   blockedLabelId: string;

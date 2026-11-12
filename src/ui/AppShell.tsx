@@ -6,19 +6,11 @@ import { useSync } from '../state/sync';
 import { ConfirmSheet } from './deck/ConfirmSheet';
 import { DeckScreen } from './deck/DeckScreen';
 import { ExpiredNotice } from './ExpiredNotice';
+import { HistoryScreen } from './HistoryScreen';
 import { number } from './format';
 import { ManualScreen } from './ManualScreen';
 import { SettingsScreen } from './SettingsScreen';
 import { Toast } from './Toast';
-
-function Placeholder({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="mx-auto flex max-w-[400px] flex-col gap-2 px-6 py-8">
-      <h1 className="text-title font-bold">{title}</h1>
-      <p className="text-body text-ink-muted">{body}</p>
-    </div>
-  );
-}
 
 export function AppShell() {
   const { screen, setScreen } = useNav();
@@ -73,9 +65,7 @@ export function AppShell() {
         <div className="min-h-0 flex-1">
           {screen === 'deck' && <DeckScreen />}
           {screen === 'manual' && <ManualScreen />}
-          {screen === 'history' && (
-            <Placeholder title="History" body="No unsubscribes yet. Senders you unsubscribe from or block show up here." />
-          )}
+          {screen === 'history' && <HistoryScreen />}
           {screen === 'settings' && <SettingsScreen />}
         </div>
       </main>

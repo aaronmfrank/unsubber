@@ -1,6 +1,6 @@
 # Unsubber — Design Brief
 
-For design exploration in Claude Design, Figma Make or any other tool. Attach this file plus the screenshots in `docs/design/screenshots/`. Built against version 0.6.0 (milestone 6).
+For design exploration in Claude Design, Figma Make or any other tool. Attach this file plus the screenshots in `docs/design/screenshots/`. Built against version 0.7.0 (milestone 7).
 
 ## How to use this
 
@@ -84,7 +84,10 @@ Designs can change anything except these.
 | Confirm sheet | A bottom sheet on phone, a centered dialog on desktop. Title, breakdown ("5 one-click, 1 email, 2 need you"), an explainer, a scrolling list with each sender's method and a Remove link, a progress bar while running, then Cancel and the red confirm button. | 13, 14, 31 |
 | Toast | Floats above the tab bar. Summary text with an inline link ("2 need you."). The error variant has a red border and doesn't auto-dismiss. | 15, 16 |
 | Manual row | Name, address, count, reason badge (Link / No link found), Open link buttons (one per link, with hostname), Mark done, then Block and Report spam. | 17 |
-| Settings sections | Bordered cards with a heading, a definition list and actions. | 18, 32 |
+| Settings sections | Bordered cards with a heading, a short explainer and actions: Mail (scanned range, Scan older mail with progress), Decks (Reset Later), Move to another device (Export, Import), About this build, Sign-in checks (collapsed), This device (Clear data and rescan, Sign out). | 18, 18b, 32 |
+| History row | Name, address, status badge (Unsubscribed muted, Repeat offender red, Blocked ink), a one-line standing ("Grace period until Nov 25", "6 emails after the grace period, last on Nov 10", "Blocked on Nov 5. Tracking stopped."). Tap to expand an attempt timeline: date, method, result, and the failure reason or link host. | 19, 19b |
+| Filter chips | Pills with counts (All 6, Unsubscribed 3, Repeat offenders 1, Blocked 2). Selected is filled ink. | 19, 19c |
+| Search field | 44px, rounded, card surface. | 19 |
 | Banners | Sign-in expired (red border, Sign in again) and Update ready (Reload). | 20, 21 |
 | Nav | Bottom tab bar, text only: Deck, Manual (count), History, Settings. Active tab in blue. On desktop a left rail with the wordmark. | all |
 | Buttons | Primary (filled blue), Danger (filled red), Secondary (outlined), Quiet (text link). | all |
@@ -108,17 +111,37 @@ Screenshots are named `NN-name-light.png` / `NN-name-dark.png`.
 | 13–14 | Confirm sheet, idle and running | The only place real actions happen | Must feel deliberate, not scary. |
 | 15–16 | Toast: summary and error | Result of a commit or sync | |
 | 17 | Manual queue | Senders needing a click | |
-| 18 | Settings | About this build, Reset Later, sign-in checks, clear data, sign out | Partly developer-facing for now. |
-| 19 | History | Placeholder until milestone 7 | Needs a real design: see below. |
+| 18 | Settings | Mail, Decks, Move to another device, About, Sign-in checks, This device | Partly developer-facing for now. |
+| 18b | Settings: scanning older mail | Progress inline in the Mail section | |
+| 19 | History | Every unsubscribed, repeat-offender and blocked sender, newest activity first | Filter chips, search, rows. |
+| 19b | History: row expanded | Attempt timeline for one sender | Shows a failed attempt in red. |
+| 19c | History: filtered | Repeat offenders only | |
+| 19d | History: empty | Before any unsubscribe | |
 | 20 | Sign-in expired | Token expired mid-session | |
 | 21 | Update banner | New version waiting | |
-| 30–32 | Desktop: deck, confirm sheet, settings | 1280×800 | Left rail. |
+| 30–33 | Desktop: deck, confirm sheet, settings, history | 1280×800 | Left rail. |
+
+### History (built in milestone 7, first pass)
+
+History answers "did it work?". It's where you check that unsubscribes stuck, see who came back, and see how far each escalation went.
+
+- **Content per sender:** name, address, status, and a standing line that changes with status:
+  - Unsubscribed, in grace: "Unsubscribed on Nov 8. Grace period until Nov 22."
+  - Unsubscribed, past grace: "Unsubscribed on Oct 17. Quiet since the grace period ended Oct 29."
+  - Repeat offender: "6 emails after the grace period, last on Nov 10."
+  - Blocked: "Blocked on Nov 5. Tracking stopped." or "Reported as spam on Nov 9."
+- **Attempt timeline:** one line per attempt, oldest first: date, method (One-click, Unsubscribe email, Link you opened, Block filter, Reported spam), result (Sent, Sent unconfirmed, Failed, Done by you), plus the failure reason or link host.
+- **Controls:** filter chips with counts, and search by name or address.
+- **Sort:** most recent activity first.
+- **Open questions for design:**
+  - Should "quiet since the grace period" read as a success, for example a small check or a "Worked" label?
+  - Should the repeat offender row link back to its stamped card in Main?
+  - Is a timeline the right shape for attempts, or is a compact "1C → Email → Block" chain better?
+  - Would a summary at the top tell the story better? For example "42 unsubscribed, 39 quiet, 3 came back", or a success rate.
+  - Desktop could use a list-detail layout, with the list on the left and the timeline on the right.
 
 ### Screens still to design
 
-- **History (milestone 7).** Every unsubscribed and blocked sender, with status, attempts ("One-click sent Oct 2 · Email sent Oct 20 · Blocked Nov 4"), returns since, and filters by status. Probably a searchable list with expandable rows.
-- **Scan older mail (milestone 7).** A Settings action that scans the next 90 days back and shows progress, plus a list of scanned windows.
-- **Export and import (milestone 7).** Export JSON, import with a confirm that replaces local data.
 - **Filter sheet (milestone 8).** The down swipe opens a sheet to filter a sender instead of unsubscribing: Skip the inbox, Mark as read, Apply label. It remembers the last choice. The drag-down overlay needs a fourth label and color ("Filter").
 - **Sudden death (deferred).** A toggle that fires each unsubscribe three seconds after the swipe, with an undo toast and a page tint so the mode is unmistakable.
 
@@ -147,7 +170,8 @@ Pick one per round.
 - **C. Stamp art direction.** Variations on the rubber stamp: ink texture, double rule, postmark circle, cancellation waves. It must work at 22px caps on a 360px card and as the app icon.
 - **D. Navigation.** Combine or rethink the deck tabs and the app tab bar; icons; where Check mail lives.
 - **E. Desktop layout.** Use the width without losing the one-card focus.
-- **F. New screens.** History first, then the filter sheet.
+- **F. History.** Redesign the first pass (19–19d, 33) using the open questions above.
+- **G. New screens.** The filter sheet, then sudden death if it comes back.
 
 ## Handoff format
 
@@ -183,6 +207,10 @@ rule          #……       #……
 ### Figma Make
 
 > Build a clickable prototype of Unsubber's deck screen at 390×844 from the attached brief and screenshots 05–12. One card stack centered, max 400px wide; three action buttons under it; a position counter; a queue bar with "Unsubscribe from 12" and Undo; a bottom tab bar (Deck, Manual, History, Settings). Use these tokens as variables: [paste token table]. Font: Archivo, variable (width 62–125). Make the card draggable left, right and up, with the overlay label fading in by distance: UNSUBSCRIBE uses the stamp treatment (red, width 125, weight 800, rotated −6°, double rule, rough edge); Keep and Later are quieter. Add a light and dark mode toggle. Then explore **[B. Card redesign]**: two alternatives for the card's hierarchy and density, using the same data.
+
+### History (Claude Design or Figma Make)
+
+> Redesign the History screen of Unsubber, a phone-first app that unsubscribes you from email senders and tracks whether they stop. The attached brief covers the visual system and constraints; screenshots 19, 19b, 19c, 19d and 33 show the current first pass in light and dark. History's job is to answer "did it work?": which unsubscribes stuck, who came back after the 10-business-day grace period, and how far each escalation went (one-click, email, manual link, Block filter, report spam). Keep the same data per sender: status, a standing line, and the attempt timeline. Keep filters by status and search. Explore: (1) a summary at the top that tells the success story, (2) a clearer success state for senders who went quiet, (3) a more compact way to show the escalation path than a timeline, and (4) a desktop list-detail layout at 1280×800. Use the existing tokens, unless you're also doing the palette round. The stamp stays reserved for repeat offenders on the deck, so don't use it here. Deliver phone light and dark plus one desktop view, then component notes in the brief's handoff format.
 
 ## Regenerating screenshots
 
