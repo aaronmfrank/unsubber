@@ -1,11 +1,14 @@
 /// <reference types="vitest/config" />
 import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 const base = '/unsubber/';
+/** The minor version is the last finished milestone: 0.4.x means milestone 4 is done. */
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string };
 
 function commitId(): string {
   if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA.slice(0, 7);
@@ -20,7 +23,7 @@ export default defineConfig({
   base,
   build: { chunkSizeWarningLimit: 800 },
   define: {
-    __BUILD_ID__: JSON.stringify(`${commitId()} · ${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC`),
+    __BUILD_INFO__: JSON.stringify({ version: pkg.version, commit: commitId(), builtAt: new Date().toISOString() }),
   },
   plugins: [
     react(),

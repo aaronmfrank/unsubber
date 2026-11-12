@@ -35,4 +35,7 @@ export function startServiceWorker(): void {
   });
 }
 
-export const BUILD_ID = __BUILD_ID__;
+export const BUILD = __BUILD_INFO__;
+
+/** 0.4.1 → 4: the minor version tracks the last finished milestone. */
+export const MILESTONE = Number(BUILD.version.split('.')[1] ?? 0);

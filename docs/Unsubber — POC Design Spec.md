@@ -288,7 +288,7 @@ Seven screens, one-column on phone, built around the card stack. The visual idea
 4. **Confirm sheet.** The queue broken down by method, with an Unsubscribe from 12 button.
 5. **Manual queue.** Rows with Open link, Mark done, Block and Report spam.
 6. **History.** Every unsubscribed and blocked sender, with status, attempts and returns.
-7. **Settings.** Scan older mail, sudden death default, export and import JSON, clear all data, sign out.
+7. **Settings.** About this build, Scan older mail, sudden death default, Reset Later (moves every saved sender back to Main), export and import JSON, clear all data, sign out.
 
 Navigation is a bottom tab bar on phone: Deck, Manual (with count), History, Settings. At 900px and wider it becomes a left rail, and the card stays centered at 400px max.
 
@@ -435,6 +435,8 @@ One Google Cloud project in Testing status and one GitHub repo deploying to Page
 - PWA manifest: `start_url` and `scope` set to `/unsubber/`, `display: standalone`, 192px and 512px icons plus an Apple touch icon.
 - GitHub Actions workflow: on push to `main`, run tests, build, and deploy `dist/` with `actions/deploy-pages`.
 - Store `VITE_GOOGLE_CLIENT_ID` as a repository variable and inject it at build time.
+- Versioning: the `package.json` minor version is the last finished milestone (`0.4.x` = milestone 4 done); bump the patch for fixes in between. Settings shows the version, milestone, short commit id and build time, so every deploy can be checked on the phone against the pushed commit.
+- The service worker waits for a safe moment to update: it applies a new version on the sign-in screen, or offers Reload when signed in (never during a commit), and checks for updates whenever the app returns to the foreground.
 
 ### First-run risk to check early
 

@@ -124,6 +124,20 @@ describe('deck store', () => {
     expect(useDeck.getState().queueCount).toBe(0);
   });
 
+  it('moves every Later sender back to Main', async () => {
+    await seed(5);
+    useDeck.getState().swipe('up');
+    useDeck.getState().swipe('up');
+    useDeck.getState().swipe('right');
+    expect(await useDeck.getState().resetLater()).toBe(2);
+
+    expect(await storage.listSenders({ status: 'saved' })).toHaveLength(0);
+    expect(await storage.listSenders({ status: 'new' })).toHaveLength(4);
+    expect(useDeck.getState().order).toHaveLength(4);
+    expect(useDeck.getState().index).toBe(0);
+    expect(await useDeck.getState().resetLater()).toBe(0);
+  });
+
   it('shows kept senders in Re-review after switching decks', async () => {
     await seed(3);
     useDeck.getState().swipe('right');

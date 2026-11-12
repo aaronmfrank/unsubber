@@ -29,6 +29,8 @@ interface DeckState {
   /** Drops these senders' swipes from the undo stack, for a commit that's about to run them. */
   lockSwipes(ids: string[]): void;
   setQueueCount(count: number): void;
+  /** Moves every saved sender back to Main. Returns how many moved. */
+  resetLater(): Promise<number>;
 }
 
 /** Which way each card left, read by its exit animation. */
@@ -125,5 +127,17 @@ export const useDeck = create<DeckState>()((set, get) => ({
 
   setQueueCount(count) {
     set({ queueCount: count });
+  },
+
+  async resetLater() {
+    const restored = Object.values(get().senders)
+      .filter((s) => s.status === 'saved')
+      .map((s): Sender => ({ ...s, status: 'new' }));
+    if (restored.length === 0) return 0;
+    persist(() => storage.upsertSenders(restored));
+    await writes;
+    get().patchSenders(restored);
+    get().selectDeck(get().deck);
+    return restored.length;
   },
 }));
