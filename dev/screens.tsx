@@ -182,8 +182,8 @@ async function setup(): Promise<ReactNode> {
     useOlderScan.setState({ refresh: async () => {} });
   }
   if (screen === 'deck-queued') await queueAll(main.slice(6, 9));
-  if (screen === 'confirm-mixed') {
-    await queueAll(main.slice(0, 3));
+  if (screen === 'confirm-mixed' || screen === 'filter-running') {
+    if (screen === 'confirm-mixed') await queueAll(main.slice(0, 3));
     const receipts = { ...main[6]!, prevStatus: 'new' as const, status: 'queued' as const };
     await storage.upsertSenders([receipts]);
     await storage.enqueue({ senderId: receipts.id, createdAt: new Date().toISOString(), filter: { skipInbox: true, markRead: true, label: 'Unsubber/squaremart.com' } });
@@ -203,9 +203,10 @@ async function setup(): Promise<ReactNode> {
 
 async function afterMount() {
   await new Promise((r) => setTimeout(r, 300));
-  if (screen === 'confirm' || screen === 'confirm-running' || screen === 'confirm-mixed') await useQueue.getState().openSheet();
+  if (screen === 'confirm' || screen === 'confirm-running' || screen === 'confirm-mixed' || screen === 'filter-running') await useQueue.getState().openSheet();
   if (screen === 'filter-sheet') useFilterSheet.getState().open(main[6]!.id);
   if (screen === 'confirm-running') useQueue.setState({ running: true, progress: { done: 3, total: 7 } });
+  if (screen === 'filter-running') useQueue.setState({ running: true, progress: { done: 0, total: 1 } });
   if (screen === 'toast') useToast.getState().show({ message: 'Unsubscribed from 10.', needYou: 2, tone: 'ok' });
   if (screen === 'toast-error')
     useToast.getState().show({ message: 'Gmail sign-in expired. 4 still queued. Sign in again and tap Unsubscribe.', tone: 'error' });

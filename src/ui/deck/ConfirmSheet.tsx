@@ -14,6 +14,14 @@ const BREAKDOWN: [QueueGroup, string][] = [
   ['filter', 'filter'],
 ];
 
+/** "Unsubscribing…", "Filtering…" or "Unsubscribing and filtering…", for the progress line while the queue runs. */
+export function progressVerb(groups: QueueGroup[]): string {
+  const filters = groups.filter((g) => g === 'filter').length;
+  if (filters === 0) return 'Unsubscribing…';
+  if (filters === groups.length) return 'Filtering…';
+  return 'Unsubscribing and filtering…';
+}
+
 /** "Unsubscribe from 5, filter 3", "Unsubscribe from 8" or "Filter 3". */
 export function commitAction(groups: QueueGroup[]): string {
   const filters = groups.filter((g) => g === 'filter').length;
@@ -142,7 +150,7 @@ export function ConfirmSheet() {
                 }}
               />
               <span className="relative">
-                Unsubscribing… {number.format(progress.done)} of {number.format(progress.total)}
+                {progressVerb(items.map((i) => i.group))} {number.format(progress.done)} of {number.format(progress.total)}
               </span>
             </div>
           ) : (

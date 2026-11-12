@@ -58,6 +58,7 @@ const SHOTS = [
   { name: '13-confirm-sheet', screen: 'confirm' },
   { name: '14-confirm-running', screen: 'confirm-running' },
   { name: '14b-confirm-with-filter', screen: 'confirm-mixed' },
+  { name: '14c-filter-running', screen: 'filter-running' },
   { name: '15-toast-summary', screen: 'toast' },
   { name: '16-toast-error', screen: 'toast-error' },
   { name: '17-manual-queue', screen: 'manual', viewport: TALL_PHONE },
