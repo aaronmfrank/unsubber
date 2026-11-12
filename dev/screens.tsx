@@ -22,6 +22,7 @@ import { SignInScreen } from '../src/ui/SignInScreen';
 import { InkFilter } from '../src/ui/Stamp';
 
 const EMAIL = 'aaron@example.com';
+const GALLERY_PORT = '5175';
 const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString();
 
 type Methods = Sender['unsubMethods'];
@@ -193,6 +194,13 @@ async function afterMount() {
   if (screen === 'update') useUpdate.setState({ ready: true });
   await new Promise((r) => setTimeout(r, 300));
   Object.assign(window, { __ready: true, __storage: storage, __deck: useDeck });
+}
+
+// The gallery wipes storage to seed sample data. On any other port it would share storage with the real app.
+if (location.port !== GALLERY_PORT) {
+  document.getElementById('root')!.textContent =
+    `The screen gallery clears local data, so it only runs on port ${GALLERY_PORT}. Run npm run screenshots, or npx vite --port ${GALLERY_PORT} and open this page there.`;
+  throw new Error('Screen gallery refused to run outside its own port');
 }
 
 const content = await setup();
