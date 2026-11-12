@@ -7,3 +7,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/** Short commit id and build date, set in vite.config.ts. */
+declare const __BUILD_ID__: string;

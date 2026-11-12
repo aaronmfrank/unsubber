@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { isStandalone } from '../auth';
+import { BUILD_ID } from '../pwa';
 import { useScan } from '../state/scan';
 import { gmail, useSession } from '../state/session';
 import { Button } from './Button';
@@ -78,6 +79,8 @@ export function SettingsScreen() {
       <Button variant="secondary" onClick={() => void signOut()}>
         Sign out
       </Button>
+
+      <p className="text-center text-caption text-ink-muted">Build {BUILD_ID}</p>
     </div>
   );
 }
