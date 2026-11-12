@@ -2,6 +2,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import { exitDirections, useDeck } from '../../state/deck';
 import { inDeck, type DeckId, type SwipeDirection } from '../../state/deckLogic';
+import { useQueue } from '../../state/queue';
 import { Button } from '../Button';
 import { number } from '../format';
 import { SwipeCard } from './SwipeCard';
@@ -22,6 +23,7 @@ const KEY_DIRECTIONS: Record<string, SwipeDirection> = { ArrowLeft: 'left', Arro
 
 export function DeckScreen() {
   const { loaded, deck, order, index, senders, undoStack, queueCount, writeError, selectDeck, swipe, undo } = useDeck();
+  const openSheet = useQueue((s) => s.openSheet);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const topId = order[index];
   const visible = order.slice(index, index + 2);
@@ -37,6 +39,7 @@ export function DeckScreen() {
       if (event.altKey || event.ctrlKey || (event.metaKey && key.toLowerCase() !== 'z')) return;
       const target = event.target as HTMLElement;
       if (target.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (useQueue.getState().sheetOpen) return;
 
       const direction = KEY_DIRECTIONS[key];
       if (direction) {
@@ -131,10 +134,9 @@ export function DeckScreen() {
       <div className="border-t border-rule">
       <div className="mx-auto flex max-w-[400px] items-center gap-3 px-4 py-3">
         <div className="flex min-w-0 flex-1 flex-col">
-          <Button disabled className="w-full">
+          <Button variant="danger" disabled={queueCount === 0} className="w-full" onClick={() => void openSheet()}>
             {queueCount > 0 ? `Unsubscribe from ${number.format(queueCount)}` : 'Queue is empty'}
           </Button>
-          {queueCount > 0 && <p className="pt-1 text-caption text-ink-muted">Sending the queue arrives in the next build.</p>}
         </div>
         <Button variant="secondary" disabled={undoStack.length === 0} onClick={undo} aria-keyshortcuts="Z">
           Undo

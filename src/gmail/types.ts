@@ -21,6 +21,13 @@ export interface GmailHeader {
   value: string;
 }
 
+export interface GmailMessagePart {
+  mimeType?: string;
+  headers?: GmailHeader[];
+  body?: { size?: number; data?: string; attachmentId?: string };
+  parts?: GmailMessagePart[];
+}
+
 export interface GmailMessage {
   id: string;
   threadId: string;
@@ -28,5 +35,5 @@ export interface GmailMessage {
   snippet?: string;
   /** Milliseconds since the epoch, as a string. */
   internalDate: string;
-  payload?: { headers?: GmailHeader[] };
+  payload?: GmailMessagePart;
 }

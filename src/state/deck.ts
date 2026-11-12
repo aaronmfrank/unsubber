@@ -24,6 +24,11 @@ interface DeckState {
   /** Ignored unless `expectedId` is still the top card, so a late drag release can't swipe the next one. */
   swipe(direction: SwipeDirection, expectedId?: string): void;
   undo(): void;
+  /** Takes in senders changed outside a swipe. Their swipes can no longer be undone. */
+  patchSenders(updated: Sender[]): void;
+  /** Drops these senders' swipes from the undo stack, for a commit that's about to run them. */
+  lockSwipes(ids: string[]): void;
+  setQueueCount(count: number): void;
 }
 
 /** Which way each card left, read by its exit animation. */
@@ -103,5 +108,22 @@ export const useDeck = create<DeckState>()((set, get) => ({
       await storage.upsertSenders([entry.before]);
       if (entry.direction === 'left') await storage.dequeue(entry.id);
     });
+  },
+
+  patchSenders(updated) {
+    const ids = new Set(updated.map((s) => s.id));
+    set((s) => ({
+      senders: { ...s.senders, ...Object.fromEntries(updated.map((sender) => [sender.id, sender])) },
+      undoStack: s.undoStack.filter((entry) => !ids.has(entry.id)),
+    }));
+  },
+
+  lockSwipes(ids) {
+    const locked = new Set(ids);
+    set((s) => ({ undoStack: s.undoStack.filter((entry) => !locked.has(entry.id)) }));
+  },
+
+  setQueueCount(count) {
+    set({ queueCount: count });
   },
 }));

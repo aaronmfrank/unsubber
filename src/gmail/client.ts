@@ -5,6 +5,7 @@ import type { GmailMessage, GmailMessageList, GmailMessageRef, GmailProfile } fr
 const BASE_URL = 'https://gmail.googleapis.com/gmail/v1/users/me';
 /** With backoff capped at 64 seconds, this rides out a full per-minute quota window several times over. */
 const MAX_RETRIES = 8;
+const BATCH_MODIFY_LIMIT = 1000;
 
 export class GmailError extends Error {
   override name = 'GmailError';
@@ -129,6 +130,40 @@ export function createGmailClient(auth: AuthProvider, events: GmailClientEvents 
       const params = new URLSearchParams({ format: 'metadata' });
       for (const header of headers) params.append('metadataHeaders', header);
       return request<GmailMessage>(`/messages/${encodeURIComponent(id)}?${params}`);
+    },
+
+    /** The whole message, body included. Only used to look for unsubscribe links; bodies are never stored. */
+    getMessageFull(id: string) {
+      return request<GmailMessage>(`/messages/${encodeURIComponent(id)}?format=full`);
+    },
+
+    /** Sends a base64url-encoded RFC 2822 message. */
+    sendMessage(raw: string) {
+      return request<GmailMessageRef>('/messages/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raw }),
+      });
+    },
+
+    async batchModify(ids: string[], change: { addLabelIds?: string[]; removeLabelIds?: string[] }) {
+      for (let start = 0; start < ids.length; start += BATCH_MODIFY_LIMIT) {
+        await request<void>('/messages/batchModify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: ids.slice(start, start + BATCH_MODIFY_LIMIT), ...change }),
+        });
+      }
+    },
+
+    /** Archives a sender's inbox mail. `in:inbox` keeps Spam and Trash out of reach. Returns how many moved. */
+    async archiveFrom(address: string): Promise<number> {
+      const refs = await this.listAllMessages(`from:${address} in:inbox`);
+      await this.batchModify(
+        refs.map((ref) => ref.id),
+        { removeLabelIds: ['INBOX'] },
+      );
+      return refs.length;
     },
 
     /** Makes the next request use a bad token so Gmail returns a real 401. */

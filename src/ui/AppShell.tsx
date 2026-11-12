@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useDeck } from '../state/deck';
+import { useNav, type Screen } from '../state/nav';
 import { useScan } from '../state/scan';
+import { ConfirmSheet } from './deck/ConfirmSheet';
 import { DeckScreen } from './deck/DeckScreen';
 import { ExpiredNotice } from './ExpiredNotice';
 import { number } from './format';
+import { ManualScreen } from './ManualScreen';
 import { SettingsScreen } from './SettingsScreen';
-
-type Screen = 'deck' | 'manual' | 'history' | 'settings';
+import { Toast } from './Toast';
 
 function Placeholder({ title, body }: { title: string; body: string }) {
   return (
@@ -18,7 +20,7 @@ function Placeholder({ title, body }: { title: string; body: string }) {
 }
 
 export function AppShell() {
-  const [screen, setScreen] = useState<Screen>('deck');
+  const { screen, setScreen } = useNav();
   const scanVersion = useScan((s) => s.version);
   const load = useDeck((s) => s.load);
   const manualCount = useDeck((s) => Object.values(s.senders).filter((sender) => sender.status === 'manual').length);
@@ -55,21 +57,25 @@ export function AppShell() {
         ))}
       </nav>
 
-      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <main className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
         <div className="mx-auto w-full max-w-[400px] px-4 empty:hidden [&:has(>*)]:pt-4">
           <ExpiredNotice />
         </div>
         <div className="min-h-0 flex-1">
           {screen === 'deck' && <DeckScreen />}
-          {screen === 'manual' && (
-            <Placeholder title="Manual" body="Nothing needs you yet. Senders that need a link clicked show up here after you unsubscribe." />
-          )}
+          {screen === 'manual' && <ManualScreen />}
           {screen === 'history' && (
             <Placeholder title="History" body="No unsubscribes yet. Senders you unsubscribe from or block show up here." />
           )}
           {screen === 'settings' && <SettingsScreen />}
         </div>
       </main>
+
+      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-30 flex justify-center px-4 empty:hidden min-[900px]:bottom-6 min-[900px]:left-48 [&>*]:pointer-events-auto [&>*]:w-full [&>*]:max-w-[440px]">
+        <Toast />
+      </div>
+
+      <ConfirmSheet />
     </div>
   );
 }

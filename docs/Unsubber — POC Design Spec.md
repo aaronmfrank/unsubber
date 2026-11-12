@@ -221,6 +221,10 @@ Put parsing and resolution in pure functions with unit tests. Cover multiple URI
 - On confirm, run senders with up to 4 in parallel and show progress. One-click and email senders become `unsubscribed`. Link and no-header senders become `manual`.
 - After each sender runs, archive all of their inbox mail. This applies to manual senders too.
 - Finish with a summary toast: "Unsubscribed from 10. 2 need you." The second part links to the manual queue.
+- The confirm sheet lists each queued sender with its method and a Remove button, which restores `prevStatus`. Once a commit starts, its senders leave the undo stack.
+- If one-click fails (network error or timeout), try email next. If email fails, route the sender to the manual queue. A sender whose only mailto goes to someone in the people-I-talk-to set also goes to manual, after a body-link search.
+- An expired sign-in or a Gmail rate limit stops the whole run. Senders not reached stay queued, and the toast says how many.
+- Save each sender's new status before archiving, so a failed archive never causes a second unsubscribe on retry. Archive failures are counted in the toast.
 
 ### Sudden death mode
 
