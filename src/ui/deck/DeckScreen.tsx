@@ -1,13 +1,13 @@
 import { AnimatePresence } from 'framer-motion';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ComponentType } from 'react';
 import { exitDirections, useDeck } from '../../state/deck';
 import { inDeck, type DeckId, type SwipeDirection } from '../../state/deckLogic';
 import { useQueue } from '../../state/queue';
 import { useSync } from '../../state/sync';
 import type { Sender } from '../../storage';
 import { nextEscalation, STEP_LABEL, STEP_SHORT_LABEL } from '../../unsub/escalation';
-import { Button } from '../Button';
 import { number } from '../format';
+import { ArrowLeft, ArrowRight, ArrowUp, Refresh, Undo } from '../icons';
 import { SwipeCard } from './SwipeCard';
 
 const DECKS: { id: DeckId; label: string }[] = [
@@ -22,6 +22,9 @@ const EMPTY_STATE: Record<DeckId, string> = {
   rereview: 'No keeps to re-review. Swipe right on a sender to keep it, and it shows up here.',
 };
 
+/** Card heights from the design boards. Offender cards and open previews grow upward; the action row never moves. */
+const CARD_HEIGHT = { normal: 384, offender: 430, expanded: 560 } as const;
+
 const KEY_DIRECTIONS: Record<string, SwipeDirection> = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up' };
 
 export function DeckScreen() {
@@ -30,11 +33,17 @@ export function DeckScreen() {
   const sync = useSync((s) => s.sync);
   const syncing = useSync((s) => s.running);
   const people = useDeck((s) => s.people);
-  const leftLabelFor = (sender: Sender) =>
-    sender.status === 'repeat_offender' ? STEP_LABEL[nextEscalation(sender, people)] : 'Unsubscribe';
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [lean, setLean] = useState<SwipeDirection | null>(null);
   const topId = order[index];
+  const top = topId ? senders[topId] : undefined;
   const visible = order.slice(index, index + 2);
+  const remaining = order.length - index;
+  const expanded = Boolean(topId && expandedId === topId);
+
+  const leftLabelFor = (sender: Sender) => (sender.status === 'repeat_offender' ? STEP_LABEL[nextEscalation(sender, people)] : 'Unsubscribe');
+  const leftShortLabel = top?.status === 'repeat_offender' ? STEP_SHORT_LABEL[nextEscalation(top, people)] : 'Unsubscribe';
+  const cardHeight = expanded ? CARD_HEIGHT.expanded : top?.status === 'repeat_offender' ? CARD_HEIGHT.offender : CARD_HEIGHT.normal;
 
   const deckCounts = useMemo(() => {
     const all = Object.values(senders);
@@ -46,7 +55,7 @@ export function DeckScreen() {
       const key = event.key;
       if (event.altKey || event.ctrlKey || (event.metaKey && key.toLowerCase() !== 'z')) return;
       const target = event.target as HTMLElement;
-      if (target.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (target.closest('input, textarea, select, [contenteditable="true"], [role="slider"]')) return;
       if (useQueue.getState().sheetOpen) return;
 
       const direction = KEY_DIRECTIONS[key];
@@ -60,8 +69,8 @@ export function DeckScreen() {
         if (target.closest('button, a')) return;
         event.preventDefault();
         const { order: o, index: i } = useDeck.getState();
-        const top = o[i];
-        if (top && !event.repeat) setExpandedId((current) => (current === top ? null : top));
+        const current = o[i];
+        if (current && !event.repeat) setExpandedId((open) => (open === current ? null : current));
       } else if (key.toLowerCase() === 'z') {
         event.preventDefault();
         if (!event.repeat) useDeck.getState().undo();
@@ -72,44 +81,61 @@ export function DeckScreen() {
   }, []);
 
   return (
-    <div className="flex h-full flex-col">
-      <header className="border-b border-rule">
-        <div className="mx-auto flex max-w-[400px] items-center gap-1 px-4 py-2" role="tablist" aria-label="Decks">
-        {DECKS.map(({ id, label }) => (
-          <button
-            key={id}
-            role="tab"
-            aria-selected={deck === id}
-            onClick={() => {
-              selectDeck(id);
-              setExpandedId(null);
-            }}
-            className={`rounded-md px-3 py-1.5 text-body transition ${
-              deck === id ? 'bg-card font-semibold text-ink shadow-[inset_0_0_0_1px_var(--rule)]' : 'text-ink-muted hover:text-ink'
-            }`}
-          >
-            {label} <span className="text-caption tabular-nums text-ink-muted">{number.format(deckCounts[id])}</span>
-          </button>
-        ))}
-          <button
-            onClick={() => void sync('manual')}
-            disabled={syncing}
-            aria-label={syncing ? 'Checking for new mail' : 'Check for new mail'}
-            title="Check for new mail"
-            className="ml-auto flex size-9 items-center justify-center rounded-md text-lead text-ink-muted transition hover:text-ink disabled:opacity-60"
-          >
-            <span aria-hidden="true" className={syncing ? 'animate-spin' : ''}>
-              ↻
-            </span>
-          </button>
+    <div className="mx-auto flex h-full w-full max-w-[420px] flex-col px-4">
+      <header className="mt-4 flex h-12 shrink-0 items-center gap-2 short:!mt-2">
+        <div className="flex gap-0.5 rounded-full bg-chip p-1" role="tablist" aria-label="Decks">
+          {DECKS.map(({ id, label }) => {
+            const active = deck === id;
+            return (
+              <button
+                key={id}
+                role="tab"
+                aria-selected={active}
+                onClick={() => {
+                  selectDeck(id);
+                  setExpandedId(null);
+                }}
+                className={`flex h-10 items-center gap-1.5 rounded-full text-body transition ${
+                  active ? 'bg-accent px-4 font-bold text-on-accent' : 'px-3 font-semibold text-muted hover:text-ink'
+                }`}
+              >
+                {label}
+                <span className={`text-caption tabular-nums ${active ? 'font-semibold' : 'font-medium'}`}>{number.format(deckCounts[id])}</span>
+              </button>
+            );
+          })}
         </div>
+        <div className="flex-1" />
+        <button
+          onClick={() => void sync('manual')}
+          disabled={syncing}
+          aria-label={syncing ? 'Checking for new mail' : 'Check mail'}
+          title="Check mail"
+          className="grid size-12 shrink-0 place-items-center rounded-full bg-chip text-ink transition hover:brightness-95 disabled:opacity-60"
+        >
+          <Refresh size={20} className={syncing ? 'animate-spin' : ''} />
+        </button>
       </header>
 
-      <div className="mx-auto flex min-h-0 w-full max-w-[400px] flex-1 flex-col justify-center px-4 pt-4">
-        <div className="relative min-h-[300px] flex-1" style={{ maxHeight: 440 }}>
-          {!loaded ? (
-            <p className="grid h-full place-items-center text-ink-muted">Loading senders…</p>
-          ) : topId ? (
+      {writeError && (
+        <p role="alert" className="mt-3 rounded-row border border-unsub bg-card px-4 py-2 text-caption text-unsub">
+          {writeError}
+        </p>
+      )}
+
+      <div className="min-h-2 flex-1" />
+
+      <p className="mb-2.5 shrink-0 short:!mb-1.5 text-center text-caption font-semibold text-muted tabular-nums" aria-live="polite">
+        {order.length === 0 ? '\u00A0' : topId ? `${number.format(index + 1)} of ${number.format(order.length)}` : `All ${number.format(order.length)} cleared`}
+      </p>
+
+      <div className="relative transition-[flex-basis] duration-200" style={{ flex: `0 1 ${cardHeight}px`, minHeight: 240 }}>
+        {!loaded ? (
+          <p className="grid h-full place-items-center text-muted">Loading senders…</p>
+        ) : topId ? (
+          <>
+            {remaining > 2 && <div aria-hidden="true" className="absolute inset-x-6 top-5 -bottom-5 rounded-card border border-rule bg-chip" />}
+            {remaining > 1 && <div aria-hidden="true" className="absolute inset-x-3 top-2.5 -bottom-2.5 rounded-card border border-rule bg-paper" />}
             <AnimatePresence custom={exitDirections} initial={false}>
               {visible.map((id, i) => (
                 <SwipeCard
@@ -119,86 +145,85 @@ export function DeckScreen() {
                   isTop={i === 0}
                   expanded={i === 0 && expandedId === id}
                   leftLabel={leftLabelFor(senders[id]!)}
-                  onToggle={() => setExpandedId((current) => (current === id ? null : id))}
+                  onToggle={() => setExpandedId((open) => (open === id ? null : id))}
                   onSwipe={(direction) => swipe(direction, id)}
+                  onLean={i === 0 ? setLean : undefined}
                 />
               ))}
             </AnimatePresence>
-          ) : (
-            <div className="grid h-full place-items-center rounded-card border border-dashed border-rule p-8 text-center">
-              <p className="text-body text-ink-muted">{EMPTY_STATE[deck]}</p>
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between gap-2 pt-4" aria-label="Swipe actions">
-          <ActionButton
-            label={
-              topId && senders[topId]!.status === 'repeat_offender'
-                ? STEP_SHORT_LABEL[nextEscalation(senders[topId]!, people)]
-                : 'Unsubscribe'
-            }
-            keyLabel="←"
-            tone="text-cancel"
-            disabled={!topId}
-            onClick={() => swipe('left')}
-          />
-          <ActionButton label="Later" keyLabel="↑" tone="text-ochre" disabled={!topId} onClick={() => swipe('up')} />
-          <ActionButton label="Keep" keyLabel="→" tone="text-post" disabled={!topId} onClick={() => swipe('right')} />
-        </div>
-        <p className="py-2 text-center text-caption tabular-nums text-ink-muted" aria-live="polite">
-          {order.length === 0
-            ? '\u00A0'
-            : topId
-              ? `${number.format(index + 1)} of ${number.format(order.length)}`
-              : `All ${number.format(order.length)} cleared`}
-        </p>
+          </>
+        ) : (
+          <div className="grid h-full place-items-center rounded-card border border-dashed border-ctl p-8 text-center">
+            <p className="text-body text-muted">{EMPTY_STATE[deck]}</p>
+          </div>
+        )}
       </div>
 
-      {writeError && (
-        <p role="alert" className="mx-4 mb-2 rounded-card border border-cancel bg-card px-4 py-2 text-caption text-cancel">
-          {writeError}
-        </p>
-      )}
-
-      <div className="border-t border-rule">
-      <div className="mx-auto flex max-w-[400px] items-center gap-3 px-4 py-3">
-        <div className="flex min-w-0 flex-1 flex-col">
-          <Button variant="danger" disabled={queueCount === 0} className="w-full" onClick={() => void openSheet()}>
-            {queueCount > 0 ? `Unsubscribe from ${number.format(queueCount)}` : 'Queue is empty'}
-          </Button>
-        </div>
-        <Button variant="secondary" disabled={undoStack.length === 0} onClick={undo} aria-keyshortcuts="Z">
-          Undo
-        </Button>
+      <div className="mt-10 flex shrink-0 justify-around short:!mt-7" aria-label="Swipe actions">
+        <RoundAction label={leftShortLabel} ariaLabel={top ? leftLabelFor(top) : 'Unsubscribe'} tone="unsub" Icon={ArrowLeft} lit={lean === 'left'} disabled={!topId} onClick={() => swipe('left')} keys="ArrowLeft" />
+        <RoundAction label="Later" tone="later" Icon={ArrowUp} lit={lean === 'up'} disabled={!topId} onClick={() => swipe('up')} keys="ArrowUp" />
+        <RoundAction label="Keep" tone="keep" Icon={ArrowRight} lit={lean === 'right'} disabled={!topId} onClick={() => swipe('right')} keys="ArrowRight" />
+        <RoundAction label="Undo" tone="neutral" Icon={Undo} disabled={undoStack.length === 0} onClick={undo} keys="Z" />
       </div>
+
+      <div className="mt-5 h-14 shrink-0 short:!mt-3">
+        <button
+          onClick={() => void openSheet()}
+          aria-hidden={queueCount === 0}
+          tabIndex={queueCount === 0 ? -1 : 0}
+          className={`flex h-14 w-full items-center justify-center gap-2 rounded-full border-2 border-gline bg-tint text-[16px] font-bold text-gtext transition hover:brightness-[0.98] ${
+            queueCount === 0 ? 'invisible' : ''
+          }`}
+        >
+          Review {number.format(queueCount)} to unsubscribe
+          <ArrowRight size={18} strokeWidth={2.4} />
+        </button>
       </div>
     </div>
   );
 }
 
-function ActionButton({
+const TONES = {
+  unsub: { ring: 'border-2 border-unsub text-unsub', label: 'text-unsub', lit: 'var(--track)' },
+  later: { ring: 'border-2 border-later text-later', label: 'text-later', lit: 'color-mix(in srgb, var(--later) 16%, var(--card))' },
+  keep: { ring: 'border-2 border-keep text-keep', label: 'text-keep', lit: 'color-mix(in srgb, var(--keep) 14%, var(--card))' },
+  neutral: { ring: 'border border-ctl bg-chip text-ink', label: 'text-ink', lit: '' },
+} as const;
+
+function RoundAction({
   label,
-  keyLabel,
+  ariaLabel,
   tone,
+  Icon,
+  lit = false,
   disabled,
   onClick,
+  keys,
 }: {
   label: string;
-  keyLabel: string;
-  tone: string;
+  ariaLabel?: string;
+  tone: keyof typeof TONES;
+  Icon: ComponentType<{ size?: number }>;
+  lit?: boolean;
   disabled: boolean;
   onClick(): void;
+  keys: string;
 }) {
+  const style = TONES[tone];
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-card border border-rule bg-card text-body font-semibold transition hover:bg-paper disabled:opacity-50 ${tone}`}
-    >
-      <span aria-hidden="true">{keyLabel}</span>
-      {label}
-    </button>
+    <div className="flex w-20 flex-col items-center gap-1.5">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        aria-label={ariaLabel ?? label}
+        aria-keyshortcuts={keys}
+        className={`grid size-16 place-items-center rounded-full transition disabled:opacity-40 ${style.ring} ${tone === 'neutral' ? '' : 'bg-card'}`}
+        style={lit && style.lit ? { background: style.lit } : undefined}
+      >
+        <Icon size={tone === 'neutral' ? 24 : 26} />
+      </button>
+      <span className={`text-caption font-semibold ${style.label}`}>{label}</span>
+    </div>
   );
 }

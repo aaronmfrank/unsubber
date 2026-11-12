@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Deck color schemes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&amp;display=swap">
+<style>
+body{margin:0;font-family:'Archivo',system-ui,sans-serif}
+</style>
+</helmet>
+<div style="width: 2700px; height: 1010px; box-sizing: border-box; padding: 40px; background: #E4E3DF; display: flex; flex-direction: row; gap: 80px; font-family: 'Archivo', system-ui, sans-serif">
+<sc-for list="{{schemes}}" as="s" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<div style="font-size: 22px; line-height: 28px; font-weight: 700; color: #1B1F2A">{{s.title}}</div>
+<div style="font-size: 13px; line-height: 18px; color: #4A5060">{{s.note}}</div>
+</div>
+<div style="display: flex; flex-direction: row; gap: 40px">
+<sc-for list="{{s.modes}}" as="t" hint-placeholder-count="2">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 13px; line-height: 18px; font-weight: 600; color: #3A4252">{{t.name}}</div>
+<div style="{{t.vars}}; width: 390px; height: 844px; position: relative; overflow: hidden; background: var(--paper); color: var(--ink); border-radius: 36px">
+
+<div style="position: absolute; left: 16px; right: 16px; top: 16px; height: 48px; display: flex; align-items: center; gap: 8px">
+<div style="display: flex; flex-direction: row; gap: 2px; padding: 4px; border-radius: 999px; background: var(--chip)">
+<div style="height: 40px; display: flex; align-items: center; gap: 6px; padding: 0 16px; border-radius: 999px; background: var(--accent); color: var(--onaccent); font-size: 15px; font-weight: 700">Main <span style="font-size: 13px; font-weight: 600">10</span></div>
+<div style="height: 40px; display: flex; align-items: center; gap: 6px; padding: 0 12px; font-size: 15px; font-weight: 600; color: var(--muted)">Later <span style="font-size: 13px; font-weight: 500">0</span></div>
+<div style="height: 40px; display: flex; align-items: center; gap: 6px; padding: 0 12px; font-size: 15px; font-weight: 600; color: var(--muted)">Re-review <span style="font-size: 13px; font-weight: 500">2</span></div>
+</div>
+<div style="flex: 1 1 0"></div>
+<button aria-label="Check mail" style="width: 48px; height: 48px; border: 0; border-radius: 999px; background: var(--chip); color: var(--ink); display: flex; align-items: center; justify-content: center; padding: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.5-5.8"/><path d="M20 4v5h-5"/></svg></button>
+</div>
+<div style="position: absolute; left: 0; right: 0; top: 70px; text-align: center; font-size: 13px; line-height: 18px; font-weight: 600; color: var(--muted)">1 of 10</div>
+
+<div style="position: absolute; left: 40px; right: 40px; top: 124px; height: 384px; border-radius: 28px; border: 1px solid var(--rule); background: var(--chip)"></div>
+<div style="position: absolute; left: 28px; right: 28px; top: 114px; height: 384px; border-radius: 28px; border: 1px solid var(--rule); background: var(--paper)"></div>
+<div style="position: absolute; left: 16px; right: 16px; top: 104px; height: 384px; box-sizing: border-box; padding: 28px; border-radius: 28px; border: 1px solid var(--rule); background: var(--card); display: flex; flex-direction: column; gap: 6px">
+<div style="font-size: 28px; line-height: 34px; font-weight: 700; letter-spacing: -0.01em">Brightside Bundle</div>
+<div style="font-size: 15px; line-height: 22px; color: var(--muted)">deals@mail.brightsidebundle.com</div>
+<div style="align-self: flex-start; margin-top: 16px; height: 32px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 999px; background: var(--tint); font-size: 15px; font-weight: 600">137 emails, last on Nov 9</div>
+<div style="font-size: 17px; line-height: 24px; font-weight: 600; margin-top: 16px">Play Ascend from Nine Mountains and more this week</div>
+<div style="font-size: 15px; line-height: 22px; color: var(--muted)">Your weekly bundle is here: eight indie games, one low price, and 10% to charity.</div>
+<div style="flex: 1 1 0"></div>
+<div style="display: flex; align-items: center; justify-content: space-between">
+<span style="height: 32px; display: inline-flex; align-items: center; padding: 0 14px; border: 1px solid var(--ctl); border-radius: 999px; font-size: 13px; font-weight: 600">One-click</span>
+<span style="font-size: 13px; color: var(--muted)">Tap for preview</span>
+</div>
+</div>
+
+<div style="position: absolute; left: 16px; right: 16px; top: 574px; display: flex; flex-direction: row; justify-content: space-around; align-items: flex-start">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 80px"><button aria-label="Unsubscribe" style="width: 64px; height: 64px; border: 2px solid var(--unsub); border-radius: 999px; background: var(--card); color: var(--unsub); display: flex; align-items: center; justify-content: center; padding: 0"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg></button><div style="font-size: 13px; line-height: 18px; font-weight: 600; color: var(--unsub)">Unsubscribe</div></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 80px"><button aria-label="Later" style="width: 64px; height: 64px; border: 2px solid var(--later); border-radius: 999px; background: var(--card); color: var(--later); display: flex; align-items: center; justify-content: center; padding: 0"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg></button><div style="font-size: 13px; line-height: 18px; font-weight: 600; color: var(--later)">Later</div></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 80px"><button aria-label="Keep" style="width: 64px; height: 64px; border: 2px solid var(--keep); border-radius: 999px; background: var(--card); color: var(--keep); display: flex; align-items: center; justify-content: center; padding: 0"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg></button><div style="font-size: 13px; line-height: 18px; font-weight: 600; color: var(--keep)">Keep</div></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 80px"><button aria-label="Undo" style="width: 64px; height: 64px; border: 1px solid var(--ctl); border-radius: 999px; background: var(--chip); color: var(--ink); display: flex; align-items: center; justify-content: center; padding: 0"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button><div style="font-size: 13px; line-height: 18px; font-weight: 600; color: var(--ink)">Undo</div></div>
+</div>
+
+<div style="position: absolute; left: 16px; right: 16px; top: 682px; height: 56px; display: flex; flex-direction: row">
+<div role="slider" aria-label="Slide to unsub from 8" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0" style="flex: 1 1 0; height: 56px; position: relative; border-radius: 999px; background: var(--track); color: var(--ontrack); display: flex; align-items: center; justify-content: center; padding-left: 40px; box-sizing: border-box; font: 600 15px 'Archivo', system-ui, sans-serif; overflow: hidden"><span style="position: absolute; left: 4px; top: 4px; width: 48px; height: 48px; border-radius: 999px; background: var(--knob); color: var(--onknob); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg></span>Slide to unsub from 8</div>
+</div>
+
+<div style="position: absolute; left: 16px; right: 16px; bottom: 20px; height: 68px; box-sizing: border-box; padding: 6px; display: flex; flex-direction: row; gap: 4px; border-radius: 999px; background: var(--pill)">
+<div style="flex: 1 1 0; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 999px; background: var(--accent); color: var(--onaccent); font-size: 14px; font-weight: 700"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 14h16"/></svg>Deck</div>
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--pillmuted); font-size: 12px; font-weight: 600"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>Manual</div>
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--pillmuted); font-size: 12px; font-weight: 600"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>History</div>
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--pillmuted); font-size: 12px; font-weight: 600"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>Settings</div>
+</div>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2700,"height":1010}}'>
+class Component extends DCLogic {
+renderVals() {
+const roleL = '--unsub:#B4302A;--keep:#2C55C9;--later:#8A5A00;--track:#F8D9D5;--ontrack:#8E241E;--knob:#B4302A;--onknob:#FFFFFF;';
+const roleD = '--unsub:#F0786D;--keep:#8BA6F2;--later:#EBA623;--track:#3A2224;--ontrack:#F4A199;--knob:#F0786D;--onknob:#121620;';
+const mk = (c, roles) => '--paper:' + c.paper + ';--card:' + c.card + ';--chip:' + c.chip + ';--ink:' + c.ink + ';--muted:' + c.muted + ';--rule:' + c.rule + ';--ctl:' + c.ctl + ';--pill:' + c.pill + ';--pillmuted:' + c.pillmuted + ';--accent:' + c.accent + ';--onaccent:' + c.onaccent + ';--tint:' + c.tint + ';' + roles;
+return {
+schemes: [
+{ title: 'A. Lime on ink', note: 'Near-black pill nav, one lime accent for the active tab and nav. Closest to samples 4 and 5.', modes: [
+{ name: 'Light', vars: mk({ paper:'#F3F4EE', card:'#FFFFFF', chip:'#E6E8DD', ink:'#14181F', muted:'#565C6C', rule:'#DCDFD2', ctl:'#8A93A3', pill:'#14181F', pillmuted:'#B8BEC9', accent:'#D8F56A', onaccent:'#14181F', tint:'#EAF8B8' }, roleL) },
+{ name: 'Dark', vars: mk({ paper:'#0E1116', card:'#1A1F27', chip:'#242A34', ink:'#EDF0F4', muted:'#A6AEBB', rule:'#2A313C', ctl:'#6B7587', pill:'#232933', pillmuted:'#B3BAC7', accent:'#D8F56A', onaccent:'#0E1116', tint:'#2E3A14' }, roleD) }
+] },
+{ title: 'B. Teal calm', note: 'Cool mist paper with a deep teal pill and a mint accent. Closest to sample 2.', modes: [
+{ name: 'Light', vars: mk({ paper:'#EEF3F2', card:'#FFFFFF', chip:'#DDE8E6', ink:'#0F2A2B', muted:'#4A6261', rule:'#D2DFDC', ctl:'#869B99', pill:'#0F3B3C', pillmuted:'#B5CFCB', accent:'#BFEAE0', onaccent:'#0F2A2B', tint:'#CDEFE6' }, roleL) },
+{ name: 'Dark', vars: mk({ paper:'#0C1717', card:'#15262A', chip:'#1D3236', ink:'#E6F2F0', muted:'#9FB8B5', rule:'#23393C', ctl:'#6B8785', pill:'#1D3A3C', pillmuted:'#B3CBC8', accent:'#8FE0CF', onaccent:'#0C1717', tint:'#1F4A46' }, roleD) }
+] },
+{ title: 'C. Plum lilac', note: 'Soft lavender paper with a plum pill and a lilac accent. Closest to sample 3.', modes: [
+{ name: 'Light', vars: mk({ paper:'#F3F1F7', card:'#FFFFFF', chip:'#E6E2EF', ink:'#221B2E', muted:'#5A546C', rule:'#DDD8E8', ctl:'#8E88A0', pill:'#2A2236', pillmuted:'#C4BCD6', accent:'#D5C8F5', onaccent:'#221B2E', tint:'#E4DBF8' }, roleL) },
+{ name: 'Dark', vars: mk({ paper:'#131019', card:'#1E1A28', chip:'#2A2536', ink:'#EEEAF5', muted:'#AAA3BD', rule:'#2F2A3D', ctl:'#756F89', pill:'#2D2740', pillmuted:'#BDB5D2', accent:'#CDBDF5', onaccent:'#131019', tint:'#3A3156' }, roleD) }
+] }
+]
+};
+}
+}
+</script>
+</body>
+</html>

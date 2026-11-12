@@ -20,15 +20,15 @@ export function Toast() {
   return (
     <div
       role="status"
-      className={`flex items-start gap-3 rounded-card border bg-card px-4 py-3 text-body shadow-[0_8px_24px_rgba(15,23,42,0.18)] ${
-        toast.tone === 'error' ? 'border-cancel' : 'border-rule'
+      className={`flex items-start gap-3 rounded-history border bg-card px-4 py-3 text-body shadow-float ${
+        toast.tone === 'error' ? 'border-unsub' : 'border-rule'
       }`}
     >
       <p className="flex-1">
         {toast.message}{' '}
         {needYou > 0 && (
           <button
-            className="font-semibold text-post underline underline-offset-2"
+            className="font-semibold text-ink underline underline-offset-[3px]"
             onClick={() => {
               setScreen('manual');
               dismiss();
@@ -38,7 +38,7 @@ export function Toast() {
           </button>
         )}
       </p>
-      <button onClick={dismiss} aria-label="Dismiss" className="text-ink-muted hover:text-ink">
+      <button onClick={dismiss} aria-label="Dismiss" className="text-muted hover:text-ink">
         ✕
       </button>
     </div>

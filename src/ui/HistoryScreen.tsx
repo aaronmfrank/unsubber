@@ -4,6 +4,7 @@ import { useDeck } from '../state/deck';
 import { storage, type Attempt, type Sender } from '../storage';
 import { attemptDetail, METHOD_LABEL, RESULT_LABEL } from './attemptLabels';
 import { number, senderName, shortDate } from './format';
+import { Search } from './icons';
 
 type Filter = 'all' | 'unsubscribed' | 'repeat_offender' | 'blocked';
 
@@ -15,8 +16,8 @@ const FILTERS: { id: Filter; label: string }[] = [
 ];
 
 const STATUS_BADGE: Record<Exclude<Filter, 'all'>, { label: string; tone: string }> = {
-  unsubscribed: { label: 'Unsubscribed', tone: 'border-rule text-ink-muted' },
-  repeat_offender: { label: 'Repeat offender', tone: 'border-cancel text-cancel' },
+  unsubscribed: { label: 'Unsubscribed', tone: 'border-ctl text-muted' },
+  repeat_offender: { label: 'Repeat offender', tone: 'border-unsub text-unsub' },
   blocked: { label: 'Blocked', tone: 'border-ink text-ink' },
 };
 
@@ -83,10 +84,10 @@ export function HistoryScreen() {
   );
 
   return (
-    <div className="mx-auto flex max-w-[400px] flex-col gap-4 px-4 py-8">
-      <header className="flex flex-col gap-1 px-2">
-        <h1 className="text-title font-bold">History</h1>
-        <p className="text-body text-ink-muted">
+    <div className="mx-auto flex max-w-[420px] flex-col gap-3 px-5 pt-7 pb-6">
+      <header className="flex flex-col gap-0.5">
+        <h1 className="text-display font-bold tracking-[-0.01em]">History</h1>
+        <p className="text-body text-muted">
           {history.length === 0
             ? 'No unsubscribes yet. Senders you unsubscribe from or block show up here.'
             : `${number.format(counts.unsubscribed)} unsubscribed, ${number.format(counts.repeat_offender)} repeat ${counts.repeat_offender === 1 ? 'offender' : 'offenders'}, ${number.format(counts.blocked)} blocked.`}
@@ -95,14 +96,14 @@ export function HistoryScreen() {
 
       {history.length > 0 && (
         <>
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Filter history">
+          <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Filter history">
             {FILTERS.map(({ id, label }) => (
               <button
                 key={id}
                 aria-pressed={filter === id}
                 onClick={() => setFilter(id)}
-                className={`rounded-full border px-3 py-1 text-caption font-semibold transition ${
-                  filter === id ? 'border-ink bg-ink text-card' : 'border-rule bg-card text-ink-muted hover:text-ink'
+                className={`inline-flex h-10 items-center gap-1 rounded-full px-4 text-[14px] transition ${
+                  filter === id ? 'bg-accent font-bold text-on-accent' : 'bg-chip font-semibold text-ink hover:brightness-95'
                 }`}
               >
                 {label} <span className="tabular-nums">{number.format(counts[id])}</span>
@@ -110,18 +111,21 @@ export function HistoryScreen() {
             ))}
           </div>
 
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search senders"
-            aria-label="Search senders"
-            className="h-11 rounded-card border border-rule bg-card px-4 text-body placeholder:text-ink-muted"
-          />
+          <label className="flex h-[52px] items-center gap-2.5 rounded-full border border-ctl bg-card px-[18px] text-muted focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink">
+            <Search size={18} />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search senders"
+              aria-label="Search senders"
+              className="h-full min-w-0 flex-1 bg-transparent text-body text-ink outline-none placeholder:text-muted"
+            />
+          </label>
 
-          {visible.length === 0 && <p className="px-2 text-body text-ink-muted">No senders match. Try another filter or search.</p>}
+          {visible.length === 0 && <p className="px-2 text-body text-muted">No senders match. Try another filter or search.</p>}
 
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-2.5">
             {visible.map((sender) => (
               <HistoryRow
                 key={sender.id}
@@ -151,33 +155,31 @@ function HistoryRow({
 }) {
   const badge = STATUS_BADGE[sender.status];
   return (
-    <li className="rounded-card border border-rule bg-card">
-      <button onClick={onToggle} aria-expanded={open} className="flex w-full flex-col gap-1 px-4 py-3 text-left">
-        <span className="flex items-start justify-between gap-3">
-          <span className="min-w-0">
-            <span className="block truncate font-semibold">{senderName(sender)}</span>
-            <span className="block truncate text-caption text-ink-muted">{sender.id}</span>
-          </span>
-          <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-caption font-semibold ${badge.tone}`}>{badge.label}</span>
+    <li className="overflow-hidden rounded-history border border-rule bg-card">
+      <button onClick={onToggle} aria-expanded={open} className="flex w-full flex-col gap-0.5 px-[18px] py-4 text-left">
+        <span className="flex items-center justify-between gap-2">
+          <span className="truncate text-lead font-bold">{senderName(sender)}</span>
+          <span className={`inline-flex h-7 shrink-0 items-center rounded-full border-[1.5px] px-3 text-caption font-bold ${badge.tone}`}>{badge.label}</span>
         </span>
-        <span className="text-caption">{standing(sender, attempts)}</span>
+        <span className="truncate text-caption text-muted">{sender.id}</span>
+        <span className="mt-1.5 text-body">{standing(sender, attempts)}</span>
       </button>
 
       {open && (
-        <div className="border-t border-rule px-4 py-3">
+        <div className="border-t border-rule bg-paper px-[18px] pt-3.5 pb-4">
           {attempts.length === 0 ? (
-            <p className="text-caption text-ink-muted">No attempts recorded on this device.</p>
+            <p className="text-[14px] leading-5 text-muted">No attempts recorded on this device.</p>
           ) : (
-            <ol className="flex flex-col gap-2">
+            <ol className="flex flex-col gap-3">
               {attempts.map((attempt) => {
                 const detail = attemptDetail(attempt);
                 return (
-                  <li key={attempt.id} className="flex gap-3 text-caption">
-                    <span className="w-14 shrink-0 tabular-nums text-ink-muted">{shortDate(attempt.at)}</span>
+                  <li key={attempt.id} className="flex gap-3.5 text-[14px] leading-5">
+                    <span className="w-12 shrink-0 text-muted tabular-nums">{shortDate(attempt.at)}</span>
                     <span className="min-w-0">
-                      <span className="font-semibold">{METHOD_LABEL[attempt.method]}</span>
-                      <span className={attempt.result === 'failed' ? 'text-cancel' : 'text-ink-muted'}> · {RESULT_LABEL[attempt.result]}</span>
-                      {detail && <span className="block truncate text-ink-muted">{detail}</span>}
+                      <span className="font-bold">{METHOD_LABEL[attempt.method]}</span>{' '}
+                      <span className={attempt.result === 'failed' ? 'font-semibold text-unsub' : 'text-muted'}>{RESULT_LABEL[attempt.result]}</span>
+                      {detail && <span className="block truncate text-muted">{detail}</span>}
                     </span>
                   </li>
                 );

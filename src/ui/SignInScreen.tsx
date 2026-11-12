@@ -10,9 +10,9 @@ export function SignInScreen() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-[400px] flex-col justify-center gap-8 px-6 py-12">
       <div className="flex flex-col gap-4">
-        <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" className="size-16 rounded-card" />
+        <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" className="size-16 rounded-[18px]" />
         <h1 className="text-display font-bold">Unsubber</h1>
-        <p className="text-lead text-ink-muted">
+        <p className="text-lead text-muted">
           Swipe through every sender in your Gmail. Unsubscribe, keep or save for later with one swipe.
         </p>
       </div>
@@ -26,13 +26,13 @@ export function SignInScreen() {
             Use a different account
           </Button>
         )}
-        <p className="text-caption text-ink-muted">
+        <p className="text-caption text-muted">
           Unsubber reads sender names, subjects and snippets from Gmail. Everything stays on this device.
         </p>
       </div>
 
       {error && (
-        <p role="alert" className="rounded-card border border-cancel bg-card px-4 py-3 text-body text-cancel">
+        <p role="alert" className="rounded-history border border-unsub bg-card px-4 py-3 text-body text-unsub">
           {error}
         </p>
       )}

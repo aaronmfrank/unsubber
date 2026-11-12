@@ -31,7 +31,8 @@ export default defineConfig({
     VitePWA({
       // Updates wait for a safe moment (the sign-in screen, or a tap on Reload) instead of reloading mid-commit.
       registerType: 'prompt',
-      pwaAssets: { config: true, overrideManifestIcons: true, injectThemeColor: false },
+      // Head links are written in index.html so the favicon can use the heavier glyph art.
+      pwaAssets: { config: true, overrideManifestIcons: true, injectThemeColor: false, includeHtmlHeadLinks: false },
       manifest: {
         name: 'Unsubber',
         short_name: 'Unsubber',
@@ -39,8 +40,8 @@ export default defineConfig({
         start_url: base,
         scope: base,
         display: 'standalone',
-        background_color: '#F6F7F9',
-        theme_color: '#F6F7F9',
+        background_color: '#F3F4EE',
+        theme_color: '#F3F4EE',
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],

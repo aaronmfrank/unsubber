@@ -327,26 +327,18 @@ Navigation is a bottom tab bar on phone: Deck, Manual (with count), History, Set
 
 ### Design direction
 
-Spend the boldness in one place: the stamp. The Unsubscribe overlay during a left swipe and the REPEAT OFFENDER stamp share one treatment: cancel-red, expanded heavy type, rotated about 6 degrees, a slightly rough ink edge. Everything else stays quiet.
+**Updated Nov 12 by the design handoff "soft paper, lime on ink"** (`docs/design/screenshots/2026-11-12-unsubber-design-handoff/`). The full token table, type, geometry and components are in `docs/design/Unsubber — Design Brief.md`; the values live in `src/index.css`.
 
-| Token | Light | Use |
-| --- | --- | --- |
-| Paper | `#F6F7F9` | Page background |
-| Card | `#FFFFFF` | Card and sheet surfaces |
-| Ink | `#1C2433` | Text |
-| Post blue | `#2C55C9` | Keep, primary buttons, focus ring |
-| Cancel red | `#C2352B` | Unsubscribe, stamp, sudden death |
-| Ochre | `#C98A12` | Later |
-| Rule | `#D7DBE2` | Borders and dividers |
-
-Dark mode: page `#131822`, card `#1C2330`, text `#E8EBF0`, rules `#2E3644`. Lift each accent about 10% in lightness for contrast.
-
-- **Type:** Archivo from Google Fonts, variable. UI text at normal width; the stamp at width 125, weight 800. Scale: 13, 15, 17, 22, 28.
-- **Case:** Sentence case everywhere. The stamp is the only all-caps text in the app.
-- **Card:** 12px radius, 1px Rule border, no shadow at rest. A soft lift appears only while dragging. The next card peeks 8px below.
-- **Sudden death:** the page background takes a 6% Cancel red tint and the toggle reads Sudden death on.
-- **Motion:** swipes follow the finger and throw off-screen. With `prefers-reduced-motion`, swipes become 150ms fades.
-- **Accessibility:** visible focus ring, every action reachable by keyboard, color never the only signal (badges and overlays carry words).
+- **Palette:** soft paper background, white cards and a dark floating pill nav. Lime (`#D8F56A`) is the single brand accent, on ink. Red (`unsub`), blue (`keep`) and amber (`later`) are reserved for the three triage actions and never used for chrome. Light and dark both ship, following the system unless Settings > Appearance overrides it.
+- **The stamp** stays the one loud element: unsub red, width 125, weight 800, caps, a 4px double rule, rotated −6°, a slightly rough ink edge. It's used for UNSUBSCRIBE while dragging and REPEAT OFFENDER on the card.
+- **Thumb zone:** the card, the four round actions (Unsubscribe, Later, Keep, Undo) and the "Review N to unsubscribe" button sit in the lower half; free space goes to the top.
+- **Confirm:** the irreversible action is a slide control ("Slide to unsubscribe from N"). The keyboard path is arrows, then Enter twice.
+- **Type:** Archivo variable, self-hosted. Titles 28/34 bold; scale 12, 13, 15, 16, 17, 28.
+- **Shape:** card radius 28, list cards 24, sheet 32, every control a pill. No shadow at rest; a lift while dragging.
+- **Case:** sentence case everywhere. The stamp is the only all-caps text.
+- **Sudden death (deferred):** when built, use an `unsub` tint on `paper` and a lime-on-ink toggle.
+- **Motion:** swipes follow the finger, tilting around the card's bottom edge, and throw off-screen. With `prefers-reduced-motion`, there is no tilt or spring and swipes become 150ms fades.
+- **Accessibility:** a visible ink focus ring, every action reachable by keyboard, color never the only signal (every action has an icon and a word), and all text pairings at 4.5:1 or better.
 
 ### Copy rules
 

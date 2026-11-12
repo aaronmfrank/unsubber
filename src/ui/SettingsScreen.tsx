@@ -8,6 +8,7 @@ import { useScan } from '../state/scan';
 import { gmail, useSession } from '../state/session';
 import { useToast } from '../state/toast';
 import { applyImport, exportToFile, readExportFile } from '../state/transfer';
+import { type Appearance, useAppearance } from '../theme';
 import { Button } from './Button';
 import { number, windowLabel } from './format';
 
@@ -18,7 +19,7 @@ const exportDate = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'nu
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-3 rounded-card border border-rule bg-card p-4">
+    <section className="flex flex-col gap-3 rounded-history border border-rule bg-card px-[18px] py-4">
       <h2 className="text-lead font-semibold">{title}</h2>
       {children}
     </section>
@@ -30,16 +31,17 @@ export function SettingsScreen() {
   const signedIn = status === 'signed_in';
 
   return (
-    <div className="mx-auto flex max-w-[400px] flex-col gap-6 px-6 py-8">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-title font-bold">Settings</h1>
-        <p className="text-body text-ink-muted">
+    <div className="mx-auto flex max-w-[420px] flex-col gap-4 px-5 pt-7 pb-6">
+      <header className="flex flex-col gap-0.5">
+        <h1 className="text-display font-bold tracking-[-0.01em]">Settings</h1>
+        <p className="text-body text-muted">
           Signed in as <span className="font-semibold text-ink">{email}</span>
         </p>
       </header>
 
       <MailSection signedIn={signedIn} />
       <DecksSection />
+      <AppearanceSection />
       <TransferSection signedIn={signedIn} />
       <AboutSection />
       <SignInChecks />
@@ -66,24 +68,52 @@ function MailSection({ signedIn }: { signedIn: boolean }) {
   return (
     <Section title="Mail">
       <p className="text-body">{covered ? `Scanned ${windowLabel(covered)}.` : 'Nothing scanned yet.'}</p>
-      <p className="text-caption text-ink-muted">
+      <p className="text-caption text-muted">
         Scan older mail looks 90 days further back. New senders join Main; known senders get their counts added.
       </p>
       {running ? (
         <div className="flex flex-col gap-1.5" aria-live="polite">
           <div className="h-2 overflow-hidden rounded-full bg-rule">
             <div
-              className={`h-full rounded-full bg-post transition-[width] ${progress?.phase === 'reading' ? '' : 'w-1/3 animate-pulse'}`}
+              className={`h-full rounded-full bg-gline transition-[width] ${progress?.phase === 'reading' ? '' : 'w-1/3 animate-pulse'}`}
               style={progress?.phase === 'reading' && progress.total ? { width: `${Math.max(2, (progress.done / progress.total) * 100)}%` } : undefined}
             />
           </div>
-          <p className="text-caption text-ink-muted">{detail}</p>
+          <p className="text-caption text-muted">{detail}</p>
         </div>
       ) : (
         <Button variant="secondary" disabled={!signedIn || !next} onClick={() => void run()}>
           {next ? `${resuming ? 'Resume scanning' : 'Scan'} ${windowLabel(next)}` : 'Scan older mail'}
         </Button>
       )}
+    </Section>
+  );
+}
+
+const APPEARANCES: { id: Appearance; label: string }[] = [
+  { id: 'system', label: 'System' },
+  { id: 'light', label: 'Light' },
+  { id: 'dark', label: 'Dark' },
+];
+
+function AppearanceSection() {
+  const { appearance, setAppearance } = useAppearance();
+  return (
+    <Section title="Appearance">
+      <div className="flex gap-0.5 self-start rounded-full bg-chip p-1" role="radiogroup" aria-label="Appearance">
+        {APPEARANCES.map(({ id, label }) => (
+          <button
+            key={id}
+            role="radio"
+            aria-checked={appearance === id}
+            onClick={() => setAppearance(id)}
+            className={`h-10 rounded-full px-4 text-body transition ${appearance === id ? 'bg-accent font-bold text-on-accent' : 'font-semibold text-muted hover:text-ink'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <p className="text-caption text-muted">System follows your device's light or dark setting.</p>
     </Section>
   );
 }
@@ -95,7 +125,7 @@ function DecksSection() {
 
   return (
     <Section title="Decks">
-      <p className="text-caption text-ink-muted">Moves every sender in Later back into Main, so they come up for a swipe again.</p>
+      <p className="text-caption text-muted">Moves every sender in Later back into Main, so they come up for a swipe again.</p>
       <Button
         variant="secondary"
         disabled={laterCount === 0}
@@ -108,7 +138,7 @@ function DecksSection() {
         {laterCount === 0 ? 'Later is empty' : `Reset Later (${laterCount})`}
       </Button>
       {message && (
-        <p role="status" className="text-caption text-post">
+        <p role="status" className="text-caption font-semibold text-gtext">
           {message}
         </p>
       )}
@@ -125,7 +155,7 @@ function TransferSection({ signedIn }: { signedIn: boolean }) {
 
   return (
     <Section title="Move to another device">
-      <p className="text-caption text-ink-muted">
+      <p className="text-caption text-muted">
         Everything lives on this device. Export a file here and import it on your other device to carry over decks, the queue and
         history. Importing replaces what's on that device.
       </p>
@@ -185,13 +215,13 @@ function AboutSection() {
   return (
     <Section title="About this build">
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-body">
-        <dt className="text-ink-muted">Version</dt>
+        <dt className="text-muted">Version</dt>
         <dd>{BUILD.version}</dd>
-        <dt className="text-ink-muted">Milestone</dt>
+        <dt className="text-muted">Milestone</dt>
         <dd>{MILESTONE} is the latest done</dd>
-        <dt className="text-ink-muted">Build</dt>
+        <dt className="text-muted">Build</dt>
         <dd className="font-mono text-caption leading-[22px]">{BUILD.commit}</dd>
-        <dt className="text-ink-muted">Built</dt>
+        <dt className="text-muted">Built</dt>
         <dd>{builtAt.format(new Date(BUILD.builtAt))}</dd>
       </dl>
       {updateReady ? (
@@ -199,7 +229,7 @@ function AboutSection() {
           Reload for the new version
         </Button>
       ) : (
-        <p className="text-caption text-ink-muted">Up to date. New versions install the next time the app opens.</p>
+        <p className="text-caption text-muted">Up to date. New versions install the next time the app opens.</p>
       )}
     </Section>
   );
@@ -231,22 +261,22 @@ function SignInChecks() {
   }
 
   return (
-    <details className="rounded-card border border-rule bg-card p-4">
+    <details className="rounded-history border border-rule bg-card px-[18px] py-4">
       <summary className="cursor-pointer text-lead font-semibold">Sign-in checks</summary>
       <div className="mt-3 flex flex-col gap-4">
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-body">
-          <dt className="text-ink-muted">Sign-in method</dt>
+          <dt className="text-muted">Sign-in method</dt>
           <dd>{authMode === 'popup' ? 'Popup' : 'Redirect'}</dd>
-          <dt className="text-ink-muted">Running as</dt>
+          <dt className="text-muted">Running as</dt>
           <dd>{isStandalone() ? 'Home-screen app' : 'Browser tab'}</dd>
-          <dt className="text-ink-muted">Silent refreshes</dt>
+          <dt className="text-muted">Silent refreshes</dt>
           <dd>{tokenRefreshes}</dd>
         </dl>
         <Button variant="secondary" onClick={() => void testTokenRefresh()} disabled={checking || status !== 'signed_in'}>
           {checking ? 'Testing…' : 'Test token refresh'}
         </Button>
         {result && (
-          <p role="status" className={`text-caption ${result.ok ? 'text-post' : 'text-cancel'}`}>
+          <p role="status" className={`text-caption ${result.ok ? 'text-gtext' : 'text-unsub'}`}>
             {result.message}
           </p>
         )}
@@ -259,13 +289,13 @@ function DeviceSection({ signedIn, email, onSignOut }: { signedIn: boolean; emai
   const resetAndRescan = useScan((s) => s.resetAndRescan);
   return (
     <Section title="This device">
-      <p className="text-caption text-ink-muted">
+      <p className="text-caption text-muted">
         Clear data deletes every sender, swipe, queued unsubscribe and history entry here, then scans the last 90 days again. Gmail
         isn't changed. Export first if you want to keep it.
       </p>
       <Button
         variant="secondary"
-        className="text-cancel"
+        className="text-unsub"
         disabled={!signedIn || !email}
         onClick={() => {
           if (email && window.confirm('Delete everything Unsubber stored on this device and scan again? This cannot be undone.'))

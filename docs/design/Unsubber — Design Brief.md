@@ -1,10 +1,10 @@
 # Unsubber — Design Brief
 
-For design exploration in Claude Design, Figma Make or any other tool. Attach this file plus the screenshots in `docs/design/screenshots/`. Built against version 0.7.0 (milestone 7).
+For design exploration in Claude Design, Figma Make or any other tool. Attach this file plus the screenshots in `docs/design/screenshots/`. Built against version 0.7.1: milestone 7 plus the 2026-11-12 design handoff, "soft paper, lime on ink". The handoff and its implementation notes are in `screenshots/2026-11-12-unsubber-design-handoff/`.
 
 ## How to use this
 
-1. Refresh the screenshots: `npm run screenshots` (about a minute). Every screen and state is captured in light and dark at iPhone size, plus three desktop views.
+1. Refresh the screenshots: `npm run screenshots` (about a minute). Every screen and state is captured in light and dark at iPhone size, plus a short-phone deck and four desktop views.
 2. Give the tool this brief, the screenshots for the area you're exploring, and one of the prompts at the end.
 3. Bring back changes in the handoff format below: a token table, type changes, and per-component notes on annotated screenshots. Everything visual in the app is driven by a handful of CSS variables, so a token table drops straight in; full mockups have to be translated by hand.
 4. After the changes are in, rerun `npm run screenshots` and compare.
@@ -19,44 +19,56 @@ Unsubber turns a Gmail inbox into a deck of cards, one per sender. Swipe left to
 
 ## Design principles (current)
 
-- **Postal metaphor.** Unwanted mail gets cancelled like a stamp. The app icon is a postage stamp with red cancellation waves.
-- **Boldness in one place: the stamp.** The UNSUBSCRIBE drag overlay and the REPEAT OFFENDER stamp share one treatment: cancel red, extra-wide heavy caps, rotated about 6°, a double rule, a slightly rough ink edge. Everything else stays quiet.
-- **Direction is clear before you let go.** A label fades in as the card moves and reaches full strength at the commit point (30% of the card's width, or height for up).
-- **Words, never color alone.** Every action, badge and status has text.
+- **Postal metaphor.** Unwanted mail gets cancelled like a stamp. The app icon is a stack of lime envelopes on ink with an empty red stamp across them.
+- **Lime is the one brand accent.** It marks the active tab, active nav item and selected chips, always on ink or with ink text. Red, blue and amber belong only to the three triage actions (Unsubscribe, Keep, Later) and are never chrome.
+- **Boldness in one place: the stamp.** UNSUBSCRIBE (drag) and REPEAT OFFENDER share one treatment: unsub red, width 125 weight 800 caps, 4px double rule, rotated −6°, a slightly rough ink edge.
+- **Thumb zone.** The card, the four round actions and the review button sit in the lower half, in one-handed reach. Free space goes to the top.
+- **Direction is clear before you let go.** The stamp or label fades in as the card moves, reaching full strength at the commit point (30% of width, or height for up), and the matching round button lights up.
+- **Words, never color alone.** Every action, badge and status has text, and every action has an icon too.
 - **Sentence case everywhere.** The stamp is the only all-caps text.
-- **Actions keep their names.** The button says "Unsubscribe from 12", the toast says "Unsubscribed from 12".
+- **Actions keep their names.** "Review 8 to unsubscribe", "Slide to unsubscribe from 8", then "Unsubscribed from 8".
 
 ## Current visual system
 
 ### Color tokens
 
-Each role needs a light and a dark value. Contrast is WCAG 2.x against the card surface; text needs 4.5:1 (3:1 for 24px+ or 19px+ bold).
+The values live in `src/index.css`; the source of truth is the handoff's `2026-11-12-tokens.css`. Every role has a light and a dark value; lime is the same in both. Contrast is WCAG 2.x: text needs 4.5:1, control outlines 3:1.
 
-| Role | Light | Dark | Used for | Contrast on card (light / dark) |
-| --- | --- | --- | --- | --- |
-| Paper | `#F6F7F9` | `#131822` | Page background | — |
-| Card | `#FFFFFF` | `#1C2330` | Cards, sheets, nav | — |
-| Ink | `#1C2433` | `#E8EBF0` | Body text | 15.6 / 13.2 |
-| Ink muted | `#5A6475` | `#A1A9B7` | Secondary text | 6.0 / 6.7 |
-| Post blue | `#2C55C9` | `#4F73D8` | Keep, links, method badges, focus ring, active tab | 6.5 / **3.6** |
-| Cancel red | `#C2352B` | `#D75349` | Unsubscribe, stamp, queue button, errors | 5.5 / **3.9** |
-| Ochre | `#C98A12` | `#EBA623` | Later | **2.9** / 7.5 |
-| Rule | `#D7DBE2` | `#2E3644` | Borders, dividers | — |
+| Token | Light | Dark | Use |
+| --- | --- | --- | --- |
+| paper | `#F3F4EE` | `#0E1116` | Page background, sheet rows, preview panel |
+| card | `#FFFFFF` | `#1A1F27` | Cards, sheets |
+| chip | `#E6E8DD` | `#242A34` | Tab track, back card, icon buttons, Undo, breakdown chips |
+| ink | `#14181F` | `#EDF0F4` | Body text, links, focus ring, Blocked badge |
+| muted | `#565C6C` | `#A6AEBB` | Secondary text |
+| rule | `#DCDFD2` | `#2A313C` | Dividers, card borders |
+| ctl | `#8A93A3` | `#6B7587` | Control outlines (method badge, secondary buttons, search) |
+| accent / onaccent | `#D8F56A` / `#14181F` | `#D8F56A` / `#0E1116` | Active tab, active nav capsule, selected chips |
+| tint | `#EAF8B8` | `#2E3A14` | Count chip on the card, review button fill |
+| gline / gtext | `#4E7A00` / `#2F4A00` | `#D8F56A` / `#D8F56A` | Review button border and text; progress bars and success text |
+| unsub | `#B4302A` | `#F0786D` | Unsubscribe icon and label, stamp, errors |
+| keep | `#2C55C9` | `#8BA6F2` | Keep only |
+| later | `#8A5A00` | `#EBA623` | Later only |
+| inkfill / oninkfill | `#1B1F2A` / `#FFFFFF` | `#E8EBF0` / `#0E1116` | Primary buttons |
+| pill, pillactive, pillmuted | `#14181F`, `#D8F56A`, `#B8BEC9` | `#232933`, `#D8F56A`, `#B3BAC7` | Floating nav pill |
+| track / ontrack | `#F8D9D5` / `#8E241E` | `#3A2224` / `#F4A199` | Slide-to-unsubscribe track and label; lit Unsubscribe circle |
+| knob / onknob | `#B4302A` / `#FFFFFF` | `#F0786D` / `#0E1116` | Slide knob |
 
-White text on filled buttons: Post blue 6.5 / **4.4**, Cancel red 5.5 / **4.0**. Bold values fail AA for normal-size text.
+All text pairings pass in both themes. One known failure: `ctl` on `paper` is 2.8:1 in light; see known issues.
 
 ### Type
 
-- **Family:** Archivo, variable, self-hosted with width (62–125) and weight axes. Body text uses normal width; the stamp uses width 125, weight 800.
-- **Scale:** Caption 13/18, Body 15/22, Lead 17/24, Title 22/28, Display 28/34.
-- **Weights in use:** 400, 600 (labels, buttons), 700 (titles), 800 (stamp).
+- **Family:** Archivo, variable, self-hosted with width (62–125) and weight axes.
+- **Sizes:** card title and page titles 28/34 w700, tracking −0.01em; subject 17/24 w600; body 15/22; chips and captions 13/18 w600; nav labels 12 (inactive) and 14 w700 (active); review button 16 w700.
+- **Stamp:** width 125, weight 800, 28/32 (22 on the offender card), tracking 0.04em.
 
 ### Shape, elevation, motion
 
-- Card radius 12px, 1px Rule border, no shadow at rest; a soft shadow only while dragging. The next card peeks 8px below.
-- Buttons 44px tall, 12px radius. Badges are pills.
-- Swipes follow the finger with a slight rotation and throw off-screen in 0.3s. With reduced motion they fade in 150ms.
-- No icon set. Text glyphs only: ← ↑ → on action buttons, ↻ for Check mail, ✕ to dismiss.
+- **Radii:** card 28, History and list cards 24, sheet 32, sheet rows 18; every control is a pill.
+- **Deck geometry (390×844):** tabs at top 16; counter about 28px above the card; card 384 tall (offender 430, open preview up to 560), anchored above the actions so it grows upward; two back layers at +10 and +20; four 64px round actions at 574; review button 56px at 682; nav pill 68px at bottom 20.
+- **Elevation:** no shadow at rest. While dragging, `0 14px 30px rgba(20,28,45,0.18)`; floating toasts and banners get a softer shadow.
+- **Motion:** the card tilts around its bottom edge, about 8° at 130px, and throws off-screen in 0.3s. With reduced motion there is no tilt and no springs, and exits are 150ms fades.
+- **Icons:** a small stroke set from the boards: arrows, undo, refresh, close, search and four nav icons.
 
 ## Hard constraints
 
@@ -74,23 +86,24 @@ Designs can change anything except these.
 
 | Component | Notes | Seen in |
 | --- | --- | --- |
-| Sender card | Name (Title), address (muted), "47 emails, last on Nov 9", newest subject (Lead semibold) and snippet (3 lines), method badge, "Tap for preview". | 05 |
-| Drag overlays | Left: the UNSUBSCRIBE stamp. Right: "Keep" in a blue outlined box. Up: "Later" in an ochre outlined box. Opacity follows drag distance. | 06, 07, 08 |
-| Preview | Expands in place: full snippet, three newest subjects with dates, "Open in Gmail". | 09 |
-| Repeat offender card | Red detail line ("Tried one-click on Oct 2. 6 emails since."), a hint naming the next step, and the REPEAT OFFENDER stamp in the empty lower part of the card. The left button shows the step ("Retry", "Email", "Block"). | 10 |
-| Action buttons | Three equal outlined buttons under the card: ← Unsubscribe (red text), ↑ Later (ochre), Keep → (blue). Position counter "1 of 318" below. | 05 |
-| Deck tabs | Main, Later, Re-review, each with a count, plus ↻ Check mail on the right. | 05 |
-| Queue bar | A full-width filled red "Unsubscribe from 12" (disabled "Queue is empty" when there are none) and an outlined Undo. | 05 |
-| Confirm sheet | A bottom sheet on phone, a centered dialog on desktop. Title, breakdown ("5 one-click, 1 email, 2 need you"), an explainer, a scrolling list with each sender's method and a Remove link, a progress bar while running, then Cancel and the red confirm button. | 13, 14, 31 |
-| Toast | Floats above the tab bar. Summary text with an inline link ("2 need you."). The error variant has a red border and doesn't auto-dismiss. | 15, 16 |
-| Manual row | Name, address, count, reason badge (Link / No link found), Open link buttons (one per link, with hostname), Mark done, then Block and Report spam. | 17 |
-| Settings sections | Bordered cards with a heading, a short explainer and actions: Mail (scanned range, Scan older mail with progress), Decks (Reset Later), Move to another device (Export, Import), About this build, Sign-in checks (collapsed), This device (Clear data and rescan, Sign out). | 18, 18b, 32 |
-| History row | Name, address, status badge (Unsubscribed muted, Repeat offender red, Blocked ink), a one-line standing ("Grace period until Nov 25", "6 emails after the grace period, last on Nov 10", "Blocked on Nov 5. Tracking stopped."). Tap to expand an attempt timeline: date, method, result, and the failure reason or link host. | 19, 19b |
-| Filter chips | Pills with counts (All 6, Unsubscribed 3, Repeat offenders 1, Blocked 2). Selected is filled ink. | 19, 19c |
-| Search field | 44px, rounded, card surface. | 19 |
-| Banners | Sign-in expired (red border, Sign in again) and Update ready (Reload). | 20, 21 |
-| Nav | Bottom tab bar, text only: Deck, Manual (count), History, Settings. Active tab in blue. On desktop a left rail with the wordmark. | all |
-| Buttons | Primary (filled blue), Danger (filled red), Secondary (outlined), Quiet (text link). | all |
+| Sender card | Name (28 bold), address (muted), count chip on tint, subject, three-line snippet, method badge (ctl outline), "Tap for preview". | 05 |
+| Drag feedback | Left: the UNSUBSCRIBE stamp hangs off the card's right edge and the Unsubscribe circle fills with `track`. Right and up show "Keep" and "Later" in the stamp's shape and their own color (sentence case, clean edge), and their circles take a light tint. | 06, 07, 08 |
+| Preview | The card grows upward. Snippet, then the three newest subjects in a `paper` panel, then "Open in Gmail". | 09 |
+| Repeat offender card | 430px. Red detail line, a one-line hint ("Left to retry one-click, right to forgive."), and the REPEAT OFFENDER stamp above the badge row. The left action reads "Retry", "Email", "Block" and so on. | 10 |
+| Round actions | Unsubscribe, Later, Keep: 64px, 2px role-color ring on card, 26px icon, role-color label. Undo: chip fill, ctl ring, ink label; disabled when there's nothing to undo. | 05 |
+| Deck tabs | A segmented pill on a chip track; active is lime. A round 48px Check mail button on the right. | 05 |
+| Review button | "Review 8 to unsubscribe →": tint fill, 2px gline border, gtext label. Hidden when the queue is empty; its space stays so nothing shifts. | 05b |
+| Confirm sheet | 32px radius. Title with a round close button ("Cancel and go back"), breakdown chips, one explainer line per method present plus "This can't be undone.", sender rows on paper with the method and a Remove link, then the slide control. | 13, 14, 31 |
+| Slide to unsubscribe | Track, knob and label. Confirms past 80% travel. Keyboard: arrows move it, then Enter twice ("Press Enter again to unsubscribe from 8"). While running it becomes a progress track. | 13, 14 |
+| Toast | Floats above the nav pill: 24px radius, soft shadow. Inline link "2 need you." An error has a red border and stays until dismissed. | 15, 16 |
+| Manual row | 24px card, name 17 bold, reason badge, pill Open link buttons with hostname, Mark done, then Block and Report spam in unsub red. | 17 |
+| Settings sections | 24px cards: Mail, Decks, Appearance (System, Light or Dark), Move to another device, About this build, Sign-in checks (collapsed), This device. | 18, 18b, 32 |
+| History row | 24px card; name 17 bold; badge (Repeat offender red, Blocked ink, Unsubscribed ctl); address; standing line. Expanding shows the timeline on paper, with Failed in red. | 19, 19b |
+| Filter chips | 40px pills with counts; active is lime. | 19, 19c |
+| Search field | A 52px pill with a search icon and ctl border. | 19 |
+| Banners | Sign-in expired (red border) and Update ready (Reload). | 20, 21 |
+| Nav pill | Floating dark pill. The active item is a lime capsule with icon and label inline; inactive items show the icon over the label. Manual shows a lime count badge. On desktop it's a vertical pill rail. | all |
+| Buttons | Primary (inkfill), Secondary (card with ctl outline), Chip (chip fill), Quiet (underlined ink). All pills. | all |
 
 ## Screens and states
 
@@ -103,7 +116,9 @@ Screenshots are named `NN-name-light.png` / `NN-name-dark.png`.
 | 03 | Scan progress | First 90-day scan, 1–5 minutes | Phase title, detail line, progress bar. |
 | 04 | Scan paused | Gmail rate limit | Auto-resumes with a countdown; Resume now. |
 | 05 | Deck: Main | Core loop | See components. |
-| 06–08 | Deck: dragging left / right / up | Direction feedback | The stamp versus the quieter Keep and Later boxes. |
+| 05b | Deck with a queue | Review button showing | |
+| 05c | Deck on a short phone | 375×667 compact layout | Not on the boards. |
+| 06–08 | Deck: dragging left / right / up | Direction feedback | Stamp and lit circle; Keep and Later labels. |
 | 09 | Deck: preview | Peek before deciding | Expanded card. |
 | 10 | Deck: repeat offender | Escalation | Stamp, red detail line, next-step hint and button label. |
 | 11 | Deck: Re-review | Revisit keeps | Adds "N emails since you kept it". |
@@ -147,49 +162,35 @@ History answers "did it work?". It's where you check that unsubscribes stuck, se
 
 ## Known issues and open questions
 
-Starting points, not decisions.
+Starting points, not decisions. The 2026-11-12 handoff resolved the old palette, contrast, blue-overload, queue-button and icon issues.
 
-1. **Contrast failures.** Light ochre text (2.9:1) fails, so "Later" labels and the Later overlay are hard to read. Dark blue and red text on cards (3.6 and 3.9) fail for small text such as method badges, the repeat offender line and links. White on the dark-mode filled buttons fails (4.4 and 4.0).
-2. **Blue means two things.** Post blue is Keep, but it's also links, the active tab, the focus ring and the One-click and Email badges. A blue badge on a card you're about to unsubscribe from reads as "keep".
-3. **The red queue button is always on screen.** It competes with the stamp ("boldness in one place"), and disabled it reads as an active pink button (05, 12).
-4. **Card density.** The card has a lot of empty space below the snippet. Is the sender or the subject the hero? Should the count be bigger? Could the card show a sparkline or the three subjects without tapping?
-5. **Overlay asymmetry.** The UNSUBSCRIBE stamp is rich, while Keep and Later are plain outlined boxes that look like form fields. Intentional hierarchy, or should they share a family?
-6. **Two rows of tabs on phone.** Deck tabs at the top and the app tab bar at the bottom. The bottom bar is text only, with no icons or active indicator beyond color.
-7. **Glyphs as icons.** ← ↑ → ↻ ✕ are font characters. A small, consistent icon set might read better.
-8. **Desktop is a stretched phone.** Lots of unused space; this could hold a queue sidebar, a keyboard legend or the preview beside the card.
-9. **Identity.** Beyond the app icon and the stamp there's no brand moment: no wordmark on the deck, and the empty states are plain.
-10. **Confirm sheet copy is a wall of text.** The explainer paragraph could be structured, such as one line per method.
-11. **Repeat offender card is busy.** Stamp, red line and hint all compete. Which one carries it?
+1. **`ctl` on `paper` is 2.8:1 in light.** The Undo button and History search sit straight on paper. A light `ctl` around `#828B9B` passes on both surfaces.
+2. **Built from tokens, never designed:** the Keep and Later drag labels, the desktop rail and layouts, the short-phone deck, the open preview, Manual, Settings, scan, sign-in, toasts and banners. These need a design review pass.
+3. **The stamp art round wasn't done.** The stamp only changed color and gained a true double rule.
+4. **The review screen** is the confirm sheet. The handoff says the review screen isn't designed yet, but the queue list with the slide control on ConfirmV2 covers it.
+5. **Desktop is still a stretched phone.** There's room for a queue sidebar, a keyboard legend or the preview beside the card.
+6. **History open questions** from the first pass (above) still apply. HistoryV2 restyled the screen but kept its structure.
+7. **Empty states are plain.** The empty deck is a dashed outline with a line of text.
 
 ## What to explore
 
 Pick one per round.
 
-- **A. Palette refresh.** Keep the four semantic roles, fix every contrast failure, and separate Keep from link and badge blue. Deliver both light and dark.
-- **B. Card redesign.** Hierarchy, density, method badge, repeat offender treatment and the empty card.
-- **C. Stamp art direction.** Variations on the rubber stamp: ink texture, double rule, postmark circle, cancellation waves. It must work at 22px caps on a 360px card and as the app icon.
-- **D. Navigation.** Combine or rethink the deck tabs and the app tab bar; icons; where Check mail lives.
-- **E. Desktop layout.** Use the width without losing the one-card focus.
-- **F. History.** Redesign the first pass (19–19d, 33) using the open questions above.
-- **G. New screens.** The filter sheet, then sudden death if it comes back.
+- **A. Design review of the token-built screens** (Manual, Settings, scan, sign-in, toasts, desktop), and the `ctl` fix.
+- **B. Stamp art direction.** Ink texture, double rule, postmark circle. It must work at 22–28px caps on a 358px card and as the app icon's empty stamp.
+- **C. Desktop layout.** Use the width without losing the one-card focus.
+- **D. History, round two.** A success summary, a "worked" state for quiet senders, and a compact escalation chain.
+- **E. New screens.** The filter sheet (milestone 8), then sudden death if it comes back.
 
 ## Handoff format
 
 Bring changes back in this shape so they map straight onto the code.
 
-**1. Token table**: every role, both modes, with contrast checked. Add a role only if it's genuinely new (such as `--filter` for the down swipe).
+**1. Token table**: only the tokens you change, both modes, with contrast checked. Use the names in the token table above, such as `ctl`, `tint` or `unsub`. Add a token only if it's genuinely new, such as `filter` for the down swipe.
 
 ```text
-Role          Light     Dark      Notes
-paper         #……       #……
-card          #……       #……
-ink           #……       #……
-ink-muted     #……       #……
-keep          #……       #……       (today: post blue)
-unsubscribe   #……       #……       (today: cancel red; also the stamp)
-later         #……       #……       (today: ochre)
-link/accent   #……       #……       (new if separated from keep)
-rule          #……       #……
+Token         Light     Dark      Notes
+ctl           #……       #……       (why it changed)
 ```
 
 **2. Type**: font family (variable, open license), scale steps and weights, and the stamp's width and weight.
@@ -200,17 +201,17 @@ rule          #……       #……
 
 ## Prompts
 
-### Claude Design
+### Claude Design: design review of the token-built screens
 
-> I'm designing a phone-first web app called Unsubber. The attached brief describes the product, the current visual system (tokens, type, components), the hard constraints, and every screen, and the screenshots show the current build in light and dark. This round, explore **[A. Palette refresh]**. Give me three distinct directions that keep the postal "cancellation stamp" idea and the rule that the stamp is the only loud element. For each direction: a full token table in light and dark with WCAG contrast for every text pairing, plus redesigns of screenshots 05 (deck), 06 (unsubscribe drag), 10 (repeat offender) and 13 (confirm sheet). Fix the known contrast issues, and stop the One-click and Email badges sharing Keep's color. Stay within the constraints section. Finish with a token table in the brief's handoff format for your recommended direction.
+> I'm designing Unsubber, a phone-first web app. The attached brief describes the product, the current visual system ("soft paper, lime on ink"), the hard constraints and every screen. The screenshots show the current build in light and dark. Several screens were built from the tokens without being designed: Manual (17), Settings (18, 18b, 32), scan progress (03, 04), sign-in (01, 02), toasts (15, 16), banners (20, 21), the short-phone deck (05c), the open preview (09), the Keep and Later drag labels (07, 08) and desktop (30–33). Review them against the designed screens (05, 06, 10, 13, 19) and propose fixes that bring them in line, without new tokens unless needed. Also fix known issue 1, `ctl` on `paper` at 2.8:1. Deliver redesigned phone screens in light and dark, then component notes and any token changes in the brief's handoff format.
 
-### Figma Make
+### Figma Make: deck prototype
 
-> Build a clickable prototype of Unsubber's deck screen at 390×844 from the attached brief and screenshots 05–12. One card stack centered, max 400px wide; three action buttons under it; a position counter; a queue bar with "Unsubscribe from 12" and Undo; a bottom tab bar (Deck, Manual, History, Settings). Use these tokens as variables: [paste token table]. Font: Archivo, variable (width 62–125). Make the card draggable left, right and up, with the overlay label fading in by distance: UNSUBSCRIBE uses the stamp treatment (red, width 125, weight 800, rotated −6°, double rule, rough edge); Keep and Later are quieter. Add a light and dark mode toggle. Then explore **[B. Card redesign]**: two alternatives for the card's hierarchy and density, using the same data.
+> Build a clickable prototype of Unsubber's deck at 390×844 from the attached brief and screenshots 05–10. Follow the deck geometry in "Shape, elevation, motion" and the tokens in the brief. Font: Archivo, variable (width 62–125). The card drags left, right and up; the UNSUBSCRIBE stamp fades in by distance and the matching round button lights up. Include the four round actions, the review button and the floating nav pill, plus a light and dark toggle. Then explore **[pick a direction]**, using the same data.
 
 ### History (Claude Design or Figma Make)
 
-> Redesign the History screen of Unsubber, a phone-first app that unsubscribes you from email senders and tracks whether they stop. The attached brief covers the visual system and constraints; screenshots 19, 19b, 19c, 19d and 33 show the current first pass in light and dark. History's job is to answer "did it work?": which unsubscribes stuck, who came back after the 10-business-day grace period, and how far each escalation went (one-click, email, manual link, Block filter, report spam). Keep the same data per sender: status, a standing line, and the attempt timeline. Keep filters by status and search. Explore: (1) a summary at the top that tells the success story, (2) a clearer success state for senders who went quiet, (3) a more compact way to show the escalation path than a timeline, and (4) a desktop list-detail layout at 1280×800. Use the existing tokens, unless you're also doing the palette round. The stamp stays reserved for repeat offenders on the deck, so don't use it here. Deliver phone light and dark plus one desktop view, then component notes in the brief's handoff format.
+> Redesign the History screen of Unsubber, a phone-first app that unsubscribes you from email senders and tracks whether they stop. The attached brief covers the visual system and constraints; screenshots 19, 19b, 19c, 19d and 33 show the current HistoryV2 build in light and dark. History's job is to answer "did it work?": which unsubscribes stuck, who came back after the 10-business-day grace period, and how far each escalation went (one-click, email, manual link, Block filter, report spam). Keep the same data per sender: status, a standing line, and the attempt timeline. Keep filters by status and search. Explore: (1) a summary at the top that tells the success story, (2) a clearer success state for senders who went quiet, (3) a more compact way to show the escalation path than a timeline, and (4) a desktop list-detail layout at 1280×800. Use the existing tokens. The stamp stays reserved for repeat offenders on the deck, so don't use it here. Deliver phone light and dark plus one desktop view, then component notes in the brief's handoff format.
 
 ## Regenerating screenshots
 

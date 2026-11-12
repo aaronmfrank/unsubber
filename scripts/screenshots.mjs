@@ -1,6 +1,6 @@
 // Captures every screen and state in light and dark, phone and desktop, into docs/design/screenshots.
 // Usage: npm run screenshots [-- name-filter]. Uses your installed Chrome; set CHROME_PATH to override.
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { chromium } from 'playwright-core';
 import { createServer } from 'vite';
 
@@ -43,6 +43,8 @@ const SHOTS = [
   { name: '03-scan-progress', screen: 'scan' },
   { name: '04-scan-paused', screen: 'scan-paused' },
   { name: '05-deck-main', screen: 'deck' },
+  { name: '05b-deck-with-queue', screen: 'deck-queued' },
+  { name: '05c-deck-small-phone', screen: 'deck-queued', viewport: { width: 375, height: 667 } },
   { name: '06-deck-drag-unsubscribe', screen: 'deck', action: drag(-95, 4) },
   { name: '07-deck-drag-keep', screen: 'deck', action: drag(95, 4) },
   { name: '08-deck-drag-later', screen: 'deck', action: drag(0, -120) },
@@ -73,8 +75,13 @@ const server = await createServer({ server: { port: PORT, strictPort: true }, lo
 await server.listen();
 const browser = await chromium.launch({ executablePath: CHROME, headless: true });
 
-if (!filter) rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
+// Only clear screenshots this script makes; anything else in the folder (like design handoffs) stays.
+if (!filter) {
+  for (const file of readdirSync(OUT)) {
+    if (/^\d{2}[a-z]?-.+-(light|dark)\.png$/.test(file)) rmSync(`${OUT}${file}`);
+  }
+}
 
 let failures = 0;
 for (const shot of SHOTS) {

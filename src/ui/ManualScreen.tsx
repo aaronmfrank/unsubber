@@ -26,10 +26,10 @@ export function ManualScreen() {
   );
 
   return (
-    <div className="mx-auto flex max-w-[400px] flex-col gap-4 px-4 py-8">
-      <header className="flex flex-col gap-1 px-2">
-        <h1 className="text-title font-bold">Manual</h1>
-        <p className="text-body text-ink-muted">
+    <div className="mx-auto flex max-w-[420px] flex-col gap-4 px-5 pt-7 pb-6">
+      <header className="flex flex-col gap-0.5">
+        <h1 className="text-display font-bold tracking-[-0.01em]">Manual</h1>
+        <p className="text-body text-muted">
           {manual.length === 0
             ? 'Nothing needs you. Senders that need a link clicked show up here after you unsubscribe.'
             : 'These senders need you to click their unsubscribe link. Mark each one done once you have, and the grace period starts. Or block or report them.'}
@@ -52,14 +52,14 @@ function ManualRow({ sender }: { sender: Sender }) {
   const links = linksFor(sender);
 
   return (
-    <li className="flex flex-col gap-3 rounded-card border border-rule bg-card p-4">
+    <li className="flex flex-col gap-3 rounded-history border border-rule bg-card px-[18px] py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate font-semibold">{senderName(sender)}</p>
-          <p className="truncate text-caption text-ink-muted">{sender.id}</p>
-          <p className="text-caption text-ink-muted">{countLine(sender)}</p>
+          <p className="truncate text-lead font-bold">{senderName(sender)}</p>
+          <p className="truncate text-caption text-muted">{sender.id}</p>
+          <p className="text-caption text-muted">{countLine(sender)}</p>
         </div>
-        <span className="shrink-0 rounded-full border border-rule px-2.5 py-0.5 text-caption font-semibold text-ink-muted">
+        <span className="inline-flex h-7 shrink-0 items-center rounded-full border-[1.5px] border-ctl px-3 text-caption font-bold text-muted">
           {links.length > 0 ? 'Link' : 'No link found'}
         </span>
       </div>
@@ -73,15 +73,15 @@ function ManualRow({ sender }: { sender: Sender }) {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setOpened(link)}
-              className="flex h-11 items-center justify-between gap-3 rounded-card border border-rule px-4 text-body font-semibold text-post hover:bg-paper"
+              className="flex h-12 items-center justify-between gap-3 rounded-full border border-ctl bg-card px-5 text-body font-semibold text-ink underline-offset-[3px] hover:underline"
             >
               <span>{links.length > 1 ? `Open link ${i + 1}` : 'Open link'}</span>
-              <span className="truncate text-caption font-normal text-ink-muted">{hostOf(link)}</span>
+              <span className="truncate text-caption font-normal text-muted">{hostOf(link)}</span>
             </a>
           ))}
         </div>
       ) : (
-        <p className="text-caption text-ink-muted">
+        <p className="text-caption text-muted">
           No unsubscribe link in the headers or the newest email. Block or report them instead.
         </p>
       )}
@@ -102,7 +102,7 @@ function ManualRow({ sender }: { sender: Sender }) {
       <div className="flex gap-2">
         <Button
           variant="secondary"
-          className="flex-1 text-cancel"
+          className="flex-1 text-unsub"
           disabled={saving}
           onClick={async () => {
             if (!window.confirm(`Block ${sender.id}? Unsubber creates a Gmail filter so their mail skips the inbox and gets the Unsubber/Blocked label.`)) return;
@@ -115,7 +115,7 @@ function ManualRow({ sender }: { sender: Sender }) {
         </Button>
         <Button
           variant="secondary"
-          className="flex-1 text-cancel"
+          className="flex-1 text-unsub"
           disabled={saving}
           onClick={async () => {
             if (!window.confirm(`Report ${sender.id} as spam? All their mail moves to Spam.`)) return;

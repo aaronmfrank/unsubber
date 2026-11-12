@@ -41,18 +41,18 @@ export function Preview({ sender }: { sender: Sender }) {
   }, [sender.id]);
 
   return (
-    <div className="flex flex-col gap-3 border-t border-rule pt-3">
-      <p className="line-clamp-5 text-body text-ink-muted">{cleanSnippet(sender.latestSnippet) || 'No preview text.'}</p>
-      <div className="flex flex-col gap-1">
-        <h3 className="text-caption font-semibold text-ink-muted">Newest emails</h3>
-        {error && <p className="text-caption text-cancel">{error}</p>}
-        {!error && !subjects && <p className="text-caption text-ink-muted">Loading…</p>}
-        {subjects?.length === 0 && <p className="text-caption text-ink-muted">No emails from this sender are stored yet.</p>}
+    <div className="flex flex-col gap-3">
+      <p className="line-clamp-4 text-body text-muted">{cleanSnippet(sender.latestSnippet) || 'No preview text.'}</p>
+      <div className="flex flex-col gap-1.5 rounded-row bg-paper px-3.5 py-2.5">
+        <h3 className="text-caption font-semibold text-muted">Newest emails</h3>
+        {error && <p className="text-caption text-unsub">{error}</p>}
+        {!error && !subjects && <p className="text-caption text-muted">Loading…</p>}
+        {subjects?.length === 0 && <p className="text-caption text-muted">No emails from this sender are stored yet.</p>}
         <ul className="flex flex-col gap-1">
           {subjects?.map((s, i) => (
-            <li key={i} className="flex gap-2 text-caption">
-              <span className="shrink-0 text-ink-muted tabular-nums">{shortDate(s.date)}</span>
-              <span className="truncate">{s.subject}</span>
+            <li key={i} className="flex gap-2.5 text-caption">
+              <span className="w-12 shrink-0 text-muted tabular-nums">{shortDate(s.date)}</span>
+              <span className="truncate font-semibold">{s.subject}</span>
             </li>
           ))}
         </ul>
@@ -62,7 +62,7 @@ export function Preview({ sender }: { sender: Sender }) {
         target="_blank"
         rel="noopener noreferrer"
         data-no-toggle
-        className="self-start text-caption font-semibold text-post underline-offset-2 hover:underline"
+        className="self-start text-caption font-semibold text-ink underline underline-offset-[3px] hover:no-underline"
       >
         Open in Gmail
       </a>

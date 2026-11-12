@@ -1,41 +1,132 @@
 @import '@fontsource-variable/archivo/wdth.css';
 @import 'tailwindcss';
 
-:root {
-  --paper: #f6f7f9;
+/* Soft paper, lime on ink (design handoff 2026-11-12). Light by default; dark follows the system
+   unless Settings > Appearance sets data-theme on <html>. Red, blue and amber are only for the
+   three triage actions; lime is the one brand accent. */
+:root,
+:root[data-theme='light'] {
+  --paper: #f3f4ee;
   --card: #ffffff;
-  --ink: #1c2433;
-  --ink-muted: #5a6475;
-  --post-blue: #2c55c9;
-  --cancel-red: #c2352b;
-  --ochre: #c98a12;
-  --rule: #d7dbe2;
+  --chip: #e6e8dd;
+  --ink: #14181f;
+  --muted: #565c6c;
+  --rule: #dcdfd2;
+  --ctl: #8a93a3;
+  --accent: #d8f56a;
+  --onaccent: #14181f;
+  --tint: #eaf8b8;
+  --gline: #4e7a00;
+  --gtext: #2f4a00;
+  --unsub: #b4302a;
+  --keep: #2c55c9;
+  --later: #8a5a00;
+  --inkfill: #1b1f2a;
+  --oninkfill: #ffffff;
+  --pill: #14181f;
+  --pillactive: #d8f56a;
+  --onpillactive: #14181f;
+  --pillmuted: #b8bec9;
+  --track: #f8d9d5;
+  --ontrack: #8e241e;
+  --knob: #b4302a;
+  --onknob: #ffffff;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #131822;
-    --card: #1c2330;
-    --ink: #e8ebf0;
-    --ink-muted: #a1a9b7;
-    --post-blue: #4f73d8;
-    --cancel-red: #d75349;
-    --ochre: #eba623;
-    --rule: #2e3644;
+  :root:not([data-theme='light']) {
+    --paper: #0e1116;
+    --card: #1a1f27;
+    --chip: #242a34;
+    --ink: #edf0f4;
+    --muted: #a6aebb;
+    --rule: #2a313c;
+    --ctl: #6b7587;
+    --accent: #d8f56a;
+    --onaccent: #0e1116;
+    --tint: #2e3a14;
+    --gline: #d8f56a;
+    --gtext: #d8f56a;
+    --unsub: #f0786d;
+    --keep: #8ba6f2;
+    --later: #eba623;
+    --inkfill: #e8ebf0;
+    --oninkfill: #0e1116;
+    --pill: #232933;
+    --pillactive: #d8f56a;
+    --onpillactive: #0e1116;
+    --pillmuted: #b3bac7;
+    --track: #3a2224;
+    --ontrack: #f4a199;
+    --knob: #f0786d;
+    --onknob: #0e1116;
     color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --paper: #0e1116;
+  --card: #1a1f27;
+  --chip: #242a34;
+  --ink: #edf0f4;
+  --muted: #a6aebb;
+  --rule: #2a313c;
+  --ctl: #6b7587;
+  --accent: #d8f56a;
+  --onaccent: #0e1116;
+  --tint: #2e3a14;
+  --gline: #d8f56a;
+  --gtext: #d8f56a;
+  --unsub: #f0786d;
+  --keep: #8ba6f2;
+  --later: #eba623;
+  --inkfill: #e8ebf0;
+  --oninkfill: #0e1116;
+  --pill: #232933;
+  --pillactive: #d8f56a;
+  --onpillactive: #0e1116;
+  --pillmuted: #b3bac7;
+  --track: #3a2224;
+  --ontrack: #f4a199;
+  --knob: #f0786d;
+  --onknob: #0e1116;
+  color-scheme: dark;
+}
+
+/* Phones shorter than the 844px design frame (iPhone SE, mini) tighten the deck so the card keeps its content. */
+@custom-variant short {
+  @media (max-height: 760px) {
+    @slot;
   }
 }
 
 @theme inline {
   --color-paper: var(--paper);
   --color-card: var(--card);
+  --color-chip: var(--chip);
   --color-ink: var(--ink);
-  --color-ink-muted: var(--ink-muted);
-  --color-post: var(--post-blue);
-  --color-cancel: var(--cancel-red);
-  --color-ochre: var(--ochre);
+  --color-muted: var(--muted);
   --color-rule: var(--rule);
+  --color-ctl: var(--ctl);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--onaccent);
+  --color-tint: var(--tint);
+  --color-gline: var(--gline);
+  --color-gtext: var(--gtext);
+  --color-unsub: var(--unsub);
+  --color-keep: var(--keep);
+  --color-later: var(--later);
+  --color-inkfill: var(--inkfill);
+  --color-on-inkfill: var(--oninkfill);
+  --color-pill: var(--pill);
+  --color-pill-active: var(--pillactive);
+  --color-on-pill-active: var(--onpillactive);
+  --color-pill-muted: var(--pillmuted);
+  --color-track: var(--track);
+  --color-on-track: var(--ontrack);
+  --color-knob: var(--knob);
+  --color-on-knob: var(--onknob);
 
   --font-sans: 'Archivo Variable', system-ui, -apple-system, sans-serif;
 
@@ -50,7 +141,13 @@
   --text-display: 28px;
   --text-display--line-height: 34px;
 
-  --radius-card: 12px;
+  --radius-card: 28px;
+  --radius-history: 24px;
+  --radius-sheet: 32px;
+  --radius-row: 18px;
+
+  --shadow-lift: 0 14px 30px rgba(20, 28, 45, 0.18);
+  --shadow-float: 0 10px 28px rgba(10, 14, 22, 0.22);
 }
 
 @layer base {
@@ -66,24 +163,26 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--post-blue);
+    outline: 2px solid var(--ink);
     outline-offset: 2px;
   }
 }
 
 @layer components {
+  /* The app's one loud element: unsub red, extra-wide heavy caps, double rule, rotated, rough ink edge. */
   .stamp {
     display: inline-block;
-    padding: 4px 12px;
-    border: 3px solid currentColor;
+    padding: 6px 14px;
+    border: 4px double currentColor;
     border-radius: 6px;
-    box-shadow: inset 0 0 0 2px var(--card), inset 0 0 0 4px currentColor;
-    color: var(--cancel-red);
-    font-size: 22px;
+    background: var(--card);
+    color: var(--unsub);
+    font-size: 28px;
+    line-height: 32px;
     font-stretch: 125%;
+    font-variation-settings: 'wdth' 125;
     font-weight: 800;
     letter-spacing: 0.04em;
-    line-height: 1.1;
     text-transform: uppercase;
     white-space: nowrap;
     transform: rotate(-6deg);

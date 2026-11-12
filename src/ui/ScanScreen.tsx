@@ -35,7 +35,7 @@ function ResumeCountdown({ resumeAt }: { resumeAt: number }) {
   }, []);
   const seconds = Math.max(0, Math.ceil((resumeAt - now) / 1000));
   return (
-    <p className="text-center text-caption text-ink-muted" aria-live="off">
+    <p className="text-center text-caption text-muted" aria-live="off">
       {seconds > 0 ? `Resuming on its own in ${seconds}s` : 'Resuming…'}
     </p>
   );
@@ -51,7 +51,7 @@ export function ScanScreen() {
     <main className="mx-auto flex min-h-dvh max-w-[400px] flex-col justify-center gap-6 px-6 py-12">
       <div className="flex flex-col gap-2">
         <h1 className="text-title font-bold">{status === 'error' ? 'Scan paused' : label}</h1>
-        <p className="text-body text-ink-muted" aria-live="polite">
+        <p className="text-body text-muted" aria-live="polite">
           {status === 'error' ? error : detail || 'Only headers, subjects and snippets are read.'}
         </p>
       </div>
@@ -66,7 +66,7 @@ export function ScanScreen() {
           className="h-2 overflow-hidden rounded-full bg-rule"
         >
           <div
-            className={`h-full rounded-full bg-post transition-[width] ${fraction === null ? 'w-1/3 animate-pulse' : ''}`}
+            className={`h-full rounded-full bg-gline transition-[width] ${fraction === null ? 'w-1/3 animate-pulse' : ''}`}
             style={fraction === null ? undefined : { width: `${Math.max(2, fraction * 100)}%` }}
           />
         </div>
@@ -81,7 +81,7 @@ export function ScanScreen() {
         </div>
       )}
 
-      <p className="text-caption text-ink-muted">Keep this screen open. The deck opens when the scan finishes.</p>
+      <p className="text-caption text-muted">Keep this screen open. The deck opens when the scan finishes.</p>
     </main>
   );
 }

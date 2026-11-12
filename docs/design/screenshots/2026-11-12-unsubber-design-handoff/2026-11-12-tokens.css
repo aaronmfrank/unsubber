@@ -1,0 +1,73 @@
+/* Unsubber design tokens, soft paper + lime on ink.
+   Source of truth: design-source/project/DeckV2.dc.html (light/dark vars).
+   Light is the default; dark applies via prefers-color-scheme and [data-theme="dark"]. */
+
+:root,
+:root[data-theme="light"] {
+  --paper: #F3F4EE;        /* page background */
+  --card: #FFFFFF;         /* cards, sheets */
+  --chip: #E6E8DD;         /* tab track, back cards, Undo button, round icon buttons */
+  --ink: #14181F;          /* body text */
+  --muted: #565C6C;        /* secondary text */
+  --rule: #DCDFD2;         /* dividers, card borders */
+  --ctl: #8A93A3;          /* control outlines (3:1 on card) */
+
+  --accent: #D8F56A;       /* lime: active tab, active nav item, focus accents */
+  --onaccent: #14181F;
+  --tint: #EAF8B8;         /* lime tint: stat chips, review button fill */
+  --gline: #4E7A00;        /* review button border */
+  --gtext: #2F4A00;        /* review button text */
+
+  --unsub: #B4302A;        /* Unsubscribe text, icon, stamp, errors */
+  --keep: #2C55C9;         /* Keep text and icon only */
+  --later: #8A5A00;        /* Later text and icon */
+
+  --pill: #14181F;         /* floating nav pill */
+  --pillactive: #D8F56A;   /* active nav capsule */
+  --onpillactive: #14181F;
+  --pillmuted: #B8BEC9;    /* inactive nav items */
+
+  --track: #F8D9D5;        /* slide-to-unsub track, Unsubscribe circle tint in drag */
+  --ontrack: #8E241E;      /* text on track */
+  --knob: #B4302A;         /* slide knob */
+  --onknob: #FFFFFF;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0E1116; --card: #1A1F27; --chip: #242A34;
+    --ink: #EDF0F4; --muted: #A6AEBB; --rule: #2A313C; --ctl: #6B7587;
+    --accent: #D8F56A; --onaccent: #0E1116;
+    --tint: #2E3A14; --gline: #D8F56A; --gtext: #D8F56A;
+    --unsub: #F0786D; --keep: #8BA6F2; --later: #EBA623;
+    --pill: #232933; --pillactive: #D8F56A; --onpillactive: #0E1116; --pillmuted: #B3BAC7;
+    --track: #3A2224; --ontrack: #F4A199; --knob: #F0786D; --onknob: #121620; /* see spec: onknob open item */
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #0E1116; --card: #1A1F27; --chip: #242A34;
+  --ink: #EDF0F4; --muted: #A6AEBB; --rule: #2A313C; --ctl: #6B7587;
+  --accent: #D8F56A; --onaccent: #0E1116;
+  --tint: #2E3A14; --gline: #D8F56A; --gtext: #D8F56A;
+  --unsub: #F0786D; --keep: #8BA6F2; --later: #EBA623;
+  --pill: #232933; --pillactive: #D8F56A; --onpillactive: #0E1116; --pillmuted: #B3BAC7;
+  --track: #3A2224; --ontrack: #F4A199; --knob: #F0786D; --onknob: #121620;
+}
+
+/* Shape and size tokens (not theme dependent) */
+:root {
+  --r-card: 28px;
+  --r-card-history: 24px;
+  --r-sheet: 32px;
+  --r-pill: 999px;
+  --tab-h: 40px;
+  --tab-track-pad: 4px;
+  --action-size: 64px;
+  --action-col: 80px;
+  --review-h: 56px;
+  --nav-h: 68px;
+  --nav-inset: 16px;
+  --nav-bottom: 20px;
+  --font: 'Archivo', system-ui, sans-serif;
+}

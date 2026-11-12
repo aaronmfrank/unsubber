@@ -1,0 +1,154 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Colors.dc.html": {
+      "h": 1010,
+      "title": "05 Deck, color schemes",
+      "w": 2700,
+      "x": 980,
+      "y": 2440
+    },
+    "Confirm.dc.html": {
+      "h": 950,
+      "title": "13 Confirm sheet",
+      "w": 900,
+      "x": 3920,
+      "y": 0
+    },
+    "ConfirmV2.dc.html": {
+      "h": 950,
+      "title": "13 Confirm sheet, soft paper",
+      "w": 900,
+      "x": 3920,
+      "y": 1230
+    },
+    "Deck.dc.html": {
+      "h": 950,
+      "title": "05 Deck",
+      "w": 900,
+      "x": 980,
+      "y": 0
+    },
+    "DeckV2.dc.html": {
+      "h": 950,
+      "is_interactive": true,
+      "title": "05 Deck, soft paper",
+      "w": 900,
+      "x": 980,
+      "y": 1230
+    },
+    "Drag.dc.html": {
+      "h": 950,
+      "title": "06 Unsubscribe drag",
+      "w": 900,
+      "x": 1960,
+      "y": 0
+    },
+    "DragV2.dc.html": {
+      "h": 950,
+      "title": "06 Drag, soft paper",
+      "w": 900,
+      "x": 1960,
+      "y": 1230
+    },
+    "HistoryV2.dc.html": {
+      "h": 950,
+      "title": "19 History, soft paper",
+      "w": 1800,
+      "x": 4915,
+      "y": 1230
+    },
+    "Icon.dc.html": {
+      "h": 820,
+      "title": "App icon",
+      "w": 1000,
+      "x": 980,
+      "y": 3600
+    },
+    "Main.dc.html": {
+      "h": 1240,
+      "title": "Tokens and contrast",
+      "w": 900,
+      "x": 0,
+      "y": 0
+    },
+    "Offender.dc.html": {
+      "h": 950,
+      "title": "10 Repeat offender",
+      "w": 900,
+      "x": 2940,
+      "y": 0
+    },
+    "OffenderV2.dc.html": {
+      "h": 950,
+      "title": "10 Repeat offender, soft paper",
+      "w": 900,
+      "x": 2940,
+      "y": 1230
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-11-12T16:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "noteOrder": [
+    "t1",
+    "t2",
+    "t3",
+    "n1"
+  ],
+  "notes": {
+    "n1": {
+      "fill": "green",
+      "text": "Design note: thumb zone. The card stack sits low, directly above the action row, instead of pinned under the tabs. Swipes start in the lower half of the screen, so the card, the action buttons and the review button all fall in one-handed reach. Free space moves to the top. Applies to 05 Deck and 06 Drag. The taller 10 Repeat offender card already sits low.",
+      "w": 380,
+      "x": 0,
+      "y": 1320
+    },
+    "t1": {
+      "kind": "title1",
+      "maxW": 4820,
+      "text": "Unsubber palette refresh: ink-first",
+      "w": 240,
+      "x": 0,
+      "y": -260
+    },
+    "t2": {
+      "kind": "title1",
+      "maxW": 3840,
+      "text": "Soft paper, floating pill",
+      "w": 240,
+      "x": 980,
+      "y": 1010
+    },
+    "t3": {
+      "kind": "title1",
+      "maxW": 2700,
+      "text": "Color schemes for 05 Deck",
+      "w": 240,
+      "x": 980,
+      "y": 2220
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Deck.dc.html",
+    "Drag.dc.html",
+    "Offender.dc.html",
+    "Confirm.dc.html",
+    "DeckV2.dc.html",
+    "DragV2.dc.html",
+    "OffenderV2.dc.html",
+    "ConfirmV2.dc.html",
+    "Colors.dc.html",
+    "Icon.dc.html",
+    "HistoryV2.dc.html"
+  ],
+  "pages": [],
+  "title": "Unsubber palette refresh: ink-first"
+}

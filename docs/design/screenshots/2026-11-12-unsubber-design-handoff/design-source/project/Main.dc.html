@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tokens and contrast</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&amp;display=swap">
+<style>
+body{margin:0;font-family:'Archivo',system-ui,sans-serif}
+</style>
+</helmet>
+<div style="width: 900px; height: 1240px; box-sizing: border-box; padding: 48px; background: #F6F7F9; color: #1C2433; font-family: 'Archivo', system-ui, sans-serif; display: flex; flex-direction: column; gap: 28px; overflow: hidden">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h1 style="margin: 0; font-size: 28px; line-height: 34px; font-weight: 700">Ink-first palette</h1>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: #5A6475">Color is reserved for the four action roles. Links, badges, tabs and the focus ring go to ink, so blue now means Keep and nothing else. Every text pairing passes 4.5:1. Every control border passes 3:1.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; border: 1px solid #D7DBE2; border-radius: 12px; background: #FFFFFF; overflow: hidden">
+<div style="display: grid; grid-template-columns: 170px 150px 150px 1fr; gap: 12px; padding: 10px 16px; background: #F6F7F9; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px; font-weight: 600; color: #5A6475">
+<div>Role</div><div>Light</div><div>Dark</div><div>Used for</div>
+</div>
+<div style="display: grid; grid-template-columns: 170px 150px 150px 1fr; gap: 12px; padding: 8px 16px; align-items: center; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px">
+<div style="font-weight: 600">paper</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #F6F7F9; border: 1px solid #8A93A3"></span>#F6F7F9</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #131822; border: 1px solid #8A93A3"></span>#131822</div>
+<div style="color: #5A6475">Page background</div>
+</div>
+<div style="display: grid; grid-template-columns: 170px 150px 150px 1fr; gap: 12px; padding: 8px 16px; align-items: center; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px">
+<div style="font-weight: 600">card</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #FFFFFF; border: 1px solid #8A93A3"></span>#FFFFFF</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #1C2330; border: 1px solid #8A93A3"></span>#1C2330</div>
+<div style="color: #5A6475">Cards, sheets, nav</div>
+</div>
+<div style="display: grid; grid-template-columns: 170px 150px 150px 1fr; gap: 12px; padding: 8px 16px; align-items: center; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px">
+<div style="font-weight: 600">ink</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #1C2433"></span>#1C2433</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #E8EBF0; border: 1px solid #8A93A3"></span>#E8EBF0</div>
+<div style="color: #5A6475">Body text, links, badges, active tab, focus ring (new)</div>
+</div>
+<div style="display: grid; grid-template-columns: 170px 150px 150px 1fr; gap: 12px; padding: 8px 16px; align-items: center; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px">
+<div style="font-weight: 600">ink-muted</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #5A6475"></span>#5A6475</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #A1A9B7"></span>#A1A9B7</div>
+<div style="color: #5A6475">Secondary text. Unchanged.</div>
+</div>
+<div style="display: grid; grid-template-columns: 170px 150px 150px 1fr; gap: 12px; padding: 8px 16px; align-items: center; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px">
+<div style="font-weight: 600">rule</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #D7DBE2"></span>#D7DBE2</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #2E3644"></span>#2E3644</div>
+<div style="color: #5A6475">Dividers, card borders. Unchanged.</div>
+</div>
+<div style="display: grid; grid-template-columns: 170px 150px 150px 1fr; gap: 12px; padding: 8px 16px; align-items: center; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px">
+<div style="font-weight: 600">control (new)</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #8A93A3"></span>#8A93A3</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #6B7587"></span>#6B7587</div>
+<div style="color: #5A6475">Outlines on buttons, chips, badges (3:1)</div>
+</div>
+<div style="display: grid; grid-template-columns: 170px 150px 150px 1fr; gap: 12px; padding: 8px 16px; align-items: center; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px">
+<div style="font-weight: 600">unsubscribe</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #B4302A"></span>#B4302A</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #F0786D"></span>#F0786D</div>
+<div style="color: #5A6475">Text, stamp, errors (was #C2352B / #D75349)</div>
+</div>
+<div style="display: grid; grid-template-columns: 170px 150px 150px 1fr; gap: 12px; padding: 8px 16px; align-items: center; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px">
+<div style="font-weight: 600">unsubscribe-fill</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #B4302A"></span>#B4302A</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #C73E34"></span>#C73E34</div>
+<div style="color: #5A6475">Confirm button, white text on top</div>
+</div>
+<div style="display: grid; grid-template-columns: 170px 150px 150px 1fr; gap: 12px; padding: 8px 16px; align-items: center; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px">
+<div style="font-weight: 600">keep</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #2C55C9"></span>#2C55C9</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #8BA6F2"></span>#8BA6F2</div>
+<div style="color: #5A6475">Keep text and overlay only</div>
+</div>
+<div style="display: grid; grid-template-columns: 170px 150px 150px 1fr; gap: 12px; padding: 8px 16px; align-items: center; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px">
+<div style="font-weight: 600">keep-fill</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #2C55C9"></span>#2C55C9</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #3A5FD6"></span>#3A5FD6</div>
+<div style="color: #5A6475">Filled Keep, white text on top</div>
+</div>
+<div style="display: grid; grid-template-columns: 170px 150px 150px 1fr; gap: 12px; padding: 8px 16px; align-items: center; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px">
+<div style="font-weight: 600">later</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #8A5A00"></span>#8A5A00</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #EBA623"></span>#EBA623</div>
+<div style="color: #5A6475">Later text and overlay (light was #C98A12, 2.9:1)</div>
+</div>
+<div style="display: grid; grid-template-columns: 170px 150px 150px 1fr; gap: 12px; padding: 8px 16px; align-items: center; font-size: 13px; line-height: 18px">
+<div style="font-weight: 600">later-fill</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #F0B33A"></span>#F0B33A</div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; border-radius: 6px; background: #EBA623"></span>#EBA623</div>
+<div style="color: #5A6475">Filled Later, ink text on top (not white)</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; border: 1px solid #D7DBE2; border-radius: 12px; background: #FFFFFF; overflow: hidden">
+<div style="display: grid; grid-template-columns: 1fr 90px 90px; gap: 12px; padding: 10px 16px; background: #F6F7F9; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px; font-weight: 600; color: #5A6475">
+<div>Pairing (WCAG 2.x contrast)</div><div>Light</div><div>Dark</div>
+</div>
+<div style="display: grid; grid-template-columns: 1fr 90px 90px; gap: 12px; padding: 7px 16px; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px"><div>Ink on card</div><div>15.6</div><div>13.2</div></div>
+<div style="display: grid; grid-template-columns: 1fr 90px 90px; gap: 12px; padding: 7px 16px; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px"><div>Ink-muted on paper</div><div>5.6</div><div>7.5</div></div>
+<div style="display: grid; grid-template-columns: 1fr 90px 90px; gap: 12px; padding: 7px 16px; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px"><div>Unsubscribe text on card (was 5.5 / 3.9)</div><div>6.2</div><div>5.7</div></div>
+<div style="display: grid; grid-template-columns: 1fr 90px 90px; gap: 12px; padding: 7px 16px; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px"><div>Keep text on card (was 6.5 / 3.6)</div><div>6.5</div><div>6.6</div></div>
+<div style="display: grid; grid-template-columns: 1fr 90px 90px; gap: 12px; padding: 7px 16px; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px"><div>Later text on card (was 2.9 / 7.5)</div><div>5.9</div><div>7.5</div></div>
+<div style="display: grid; grid-template-columns: 1fr 90px 90px; gap: 12px; padding: 7px 16px; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px"><div>Later text on paper</div><div>5.5</div><div>8.5</div></div>
+<div style="display: grid; grid-template-columns: 1fr 90px 90px; gap: 12px; padding: 7px 16px; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px"><div>White on unsubscribe-fill (was 5.5 / 4.0)</div><div>6.2</div><div>5.0</div></div>
+<div style="display: grid; grid-template-columns: 1fr 90px 90px; gap: 12px; padding: 7px 16px; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px"><div>White on keep-fill (was 6.5 / 4.4)</div><div>6.5</div><div>5.5</div></div>
+<div style="display: grid; grid-template-columns: 1fr 90px 90px; gap: 12px; padding: 7px 16px; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px"><div>Ink text on later-fill</div><div>8.3</div><div>8.5</div></div>
+<div style="display: grid; grid-template-columns: 1fr 90px 90px; gap: 12px; padding: 7px 16px; border-bottom: 1px solid #D7DBE2; font-size: 13px; line-height: 18px"><div>Queue button: card text on ink fill</div><div>15.6</div><div>14.9</div></div>
+<div style="display: grid; grid-template-columns: 1fr 90px 90px; gap: 12px; padding: 7px 16px; font-size: 13px; line-height: 18px"><div>Control outline on card (needs 3:1)</div><div>3.1</div><div>3.4</div></div>
+</div>
+
+<p style="margin: 0; font-size: 13px; line-height: 18px; color: #5A6475">Also changed: the queue button is ink-filled when it holds senders and an outlined, muted state when empty. Red fill appears only on the confirm sheet's final button. The stamp keeps its treatment, using the unsubscribe value.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":900,"height":1240}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

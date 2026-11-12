@@ -174,6 +174,7 @@ async function setup(): Promise<ReactNode> {
     useOlderScan.setState({ running: true, progress: { phase: 'reading', done: 640, total: 1830, senders: 274 } });
     useOlderScan.setState({ refresh: async () => {} });
   }
+  if (screen === 'deck-queued') await queueAll(main.slice(6, 9));
   if (screen === 'confirm' || screen === 'confirm-running') await queueAll([offender, ...main.slice(0, 5), main[8]!, main[9]!].filter((s) => screen === 'confirm' || s !== offender));
   if (screen === 'expired') useSession.setState({ status: 'expired', error: null });
   if (screen === 'manual') useNav.setState({ screen: 'manual' });
@@ -193,7 +194,7 @@ async function afterMount() {
     useToast.getState().show({ message: 'Gmail sign-in expired. 4 still queued. Sign in again and tap Unsubscribe.', tone: 'error' });
   if (screen === 'update') useUpdate.setState({ ready: true });
   await new Promise((r) => setTimeout(r, 300));
-  Object.assign(window, { __ready: true, __storage: storage, __deck: useDeck });
+  Object.assign(window, { __ready: true, __storage: storage, __deck: useDeck, __queue: useQueue });
 }
 
 // The gallery wipes storage to seed sample data. On any other port it would share storage with the real app.
